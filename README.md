@@ -12,4 +12,4 @@ There are (at least 2) popular implementations of digraph (`:digraph` and `libgr
 `bitgraph` aims for an efficient implementation using :atomics for digraph representation.
 
 
-
+Status: under construction.
