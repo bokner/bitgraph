@@ -1,11 +1,14 @@
 -module(bit_vector).
 
--export([new/1, get/2, set/2, clear/2, flip/2, print/1]).
+-export([new/1, get/2, set/2, clear/2, flip/2, print/1, size/1]).
 
 
 new(Size) ->
     Words = (Size + 63) div 64,
     {?MODULE, Size, atomics:new(Words, [{signed, false}])}.
+
+size({?MODULE, Size, _Aref}) ->
+    Size.
 
 get({?MODULE, _Size, Aref}, Bix) ->
     Wix = (Bix div 64) + 1,
