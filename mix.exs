@@ -21,7 +21,7 @@ defmodule Bitgraph.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:libgraph, "~> 0.16.0", only: :dev, runtime: :false},
+      {:libgraph, "~> 0.16.0", only: :dev, runtime: false},
       {:arrays, "~> 2.1"},
       {:arrays_aja, "~> 0.2.0"},
       {:math, "~> 0.7.0", only: :test},

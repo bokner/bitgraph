@@ -4,6 +4,5 @@ defmodule BitGraph.V do
   end
 
   def add_vertex(graph, vertex, opts \\ []) do
-
   end
 end

@@ -9,8 +9,6 @@ defmodule BitGraph do
   alias BitGraph.{V, E, Impl}
 
   def new(opts \\ []) do
-    %{vertices: V.init_vertices(), edges: E.init_edges(),
-        adjacency: Impl.init_adjacency_table()
-    }
+    %{vertices: V.init_vertices(), edges: E.init_edges(), adjacency: Impl.init_adjacency_table()}
   end
 end
