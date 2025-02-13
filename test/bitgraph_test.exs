@@ -1,7 +1,7 @@
 defmodule BitGraphTest do
   use ExUnit.Case
 
-  alias BitGraph.Adjacency
+  alias BitGraph.{V, Adjacency}
 
   describe "BitGraph" do
     test "create graph" do
@@ -19,6 +19,23 @@ defmodule BitGraphTest do
       ## Adding a new vertex should increase the number of vertices
       graph = BitGraph.add_vertex(graph, "B")
       assert graph.vertices.num_vertices == 2
+    end
+
+    test "get/update vertex info" do
+      graph = BitGraph.new()
+      vertex_data = [label: "a", weight: 1]
+      graph = BitGraph.add_vertex(graph, :a, vertex_data)
+      assert BitGraph.get_vertex(graph, :a, [:opts]) == vertex_data
+       and BitGraph.get_vertex(graph, :a, [:vertex]) == :a
+      refute BitGraph.get_vertex(graph, :a, [:something])
+
+      updated_data = [label: "a2", weight: 2]
+      graph = BitGraph.update_vertex(graph, :a, updated_data)
+      assert BitGraph.get_vertex(graph, :a, [:opts]) == updated_data
+
+      ## Vertex not in graph
+      refute BitGraph.get_vertex(graph, :c)
+      refute BitGraph.update_vertex(graph, :c, vertex_data)
     end
 
     test "add edge" do
@@ -65,10 +82,34 @@ defmodule BitGraphTest do
 
     end
 
+    test "neighbors" do
+      graph = BitGraph.new()
+      graph = BitGraph.add_edge(graph, :a, :b)
+      assert BitGraph.in_neighbors(graph, :a) == MapSet.new([])
+      assert BitGraph.out_neighbors(graph, :a) == MapSet.new([:b])
+      assert BitGraph.in_neighbors(graph, :b) == MapSet.new([:a])
+      assert BitGraph.out_neighbors(graph, :b) == MapSet.new([])
+      ## Vertex not in graph
+      assert BitGraph.in_neighbors(graph, :c) == MapSet.new([])
+      assert BitGraph.out_neighbors(graph, :c) == MapSet.new([])
+    end
+
+    test "degrees" do
+      graph = BitGraph.new()
+      graph = BitGraph.add_edge(graph, :a, :b)
+      assert BitGraph.in_degree(graph, :a) == 0
+      assert BitGraph.out_degree(graph, :a) == 1
+      assert BitGraph.in_degree(graph, :b) == 1
+      assert BitGraph.out_degree(graph, :b) == 0
+      ## Vertex not in graph
+      assert BitGraph.in_degree(graph, :c) == 0
+      assert BitGraph.out_degree(graph, :c) == 0
+    end
+
     defp adjacent_vertices?(graph, v1, v2) do
       graph[:adjacency]
-      |> Adjacency.get(BitGraph.get_vertex_index(graph, v1),
-      BitGraph.get_vertex_index(graph, v2)
+      |> Adjacency.get(V.get_vertex_index(graph, v1),
+      V.get_vertex_index(graph, v2)
       ) == 1
     end
 

@@ -15,6 +15,28 @@ defmodule BitGraph.V do
     |> then(fn vertices -> Map.put(graph, :vertices, vertices) end)
   end
 
+  def get_vertex_index(graph, vertex) do
+    Map.get(graph[:vertices][:id_to_index], vertex)
+  end
+
+  def get_vertex(graph, vertex_idx, aux \\ [])
+
+  def get_vertex(_graph, vertex_idx, _aux) when is_nil(vertex_idx) do
+    nil
+  end
+
+  def get_vertex(graph, vertex_idx, aux) when is_integer(vertex_idx) do
+    get_in(graph, [:vertices, :index_to_vertex, vertex_idx] ++ aux)
+  end
+
+  def update_vertex(_graph, vertex_idx, _aux) when is_nil(vertex_idx) do
+    nil
+  end
+
+  def update_vertex(graph, vertex_idx, vertex_info) when is_integer(vertex_idx) do
+    put_in(graph, [:vertices, :index_to_vertex, vertex_idx, :opts], vertex_info)
+  end
+
   def delete_vertex(%{vertices: vertices} = graph, vertex) do
     vertices
     |> delete_vertex_impl(vertex)
