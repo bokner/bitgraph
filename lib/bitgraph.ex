@@ -25,8 +25,15 @@ defmodule BitGraph do
     |> V.add_vertex(vertex, opts)
   end
 
+  def delete_vertex(graph, vertex) do
+    vertex_index = get_vertex_index(graph, vertex)
+    graph
+    |> E.delete_edges(vertex_index)
+    |> V.delete_vertex(vertex)
+  end
+
   def vertices(graph) do
-    graph[:vertices][:pos_to_vertex] |> Map.values() |> Enum.map(&(&1.vertex))
+    graph[:vertices][:index_to_vertex] |> Map.values() |> Enum.map(&(&1.vertex))
   end
 
   def add_edge(graph, from, to, opts \\ []) do
@@ -34,11 +41,21 @@ defmodule BitGraph do
     |> V.add_vertex(from, opts)
     |> V.add_vertex(to, opts)
     |> then(fn graph ->
-            from_pos = Map.get(graph[:vertices][:id_to_pos], from)
-            to_pos = Map.get(graph[:vertices][:id_to_pos], to)
-            E.add_edge(graph, from_pos, to_pos)
-            Map.update(graph, :edges, %{}, fn edges -> Map.put(edges, {from, to}, E.new(from, to, opts)) end)
+            from_index = get_vertex_index(graph, from)
+            to_index = get_vertex_index(graph, to)
+            E.add_edge(graph, from_index, to_index)
+            Map.update(graph, :edges, %{}, fn edges -> Map.put(edges, {from_index, to_index}, E.new(from, to, opts)) end)
     end)
+  end
+
+  def delete_edge(graph, from, to) do
+    from_index = get_vertex_index(graph, from)
+    to_index = get_vertex_index(graph, to)
+    from_index && to_index &&
+    (
+    E.delete_edge(graph, from_index, to_index)
+    Map.update(graph, :edges, %{}, fn edges -> Map.delete(edges, {from_index, to_index}) end)
+    ) || graph
   end
 
   def edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
@@ -46,31 +63,31 @@ defmodule BitGraph do
   end
 
   def in_edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
-    edges_impl(graph, get_vertex_pos(graph, vertex), edge_fun, :in_edges)
+    edges_impl(graph, get_vertex_index(graph, vertex), edge_fun, :in_edges)
   end
 
   def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
-    edges_impl(graph, get_vertex_pos(graph, vertex), edge_fun, :out_edges)
+    edges_impl(graph, get_vertex_index(graph, vertex), edge_fun, :out_edges)
   end
 
-  defp edges_impl(%{adjacency: adjacency} = graph, vertex_pos, edge_info_fun, direction) when is_integer(vertex_pos) do
-    neighbor_positions = neighbors(vertex_pos, adjacency, direction)
-    Enum.reduce(neighbor_positions, MapSet.new(), fn neighbor_pos, acc ->
-      {from_vertex, to_vertex} = edge_vertices(vertex_pos, neighbor_pos, direction)
+  defp edges_impl(%{adjacency: adjacency} = graph, vertex_index, edge_info_fun, direction) when is_integer(vertex_index) do
+    neighbor_indices = neighbors(vertex_index, adjacency, direction)
+    Enum.reduce(neighbor_indices, MapSet.new(), fn neighbor_index, acc ->
+      {from_vertex, to_vertex} = edge_vertices(vertex_index, neighbor_index, direction)
       MapSet.put(acc, edge_info_fun.(from_vertex, to_vertex, graph))
     end)
   end
 
-  defp default_edge_info(from, to, %{edges: edges, vertices: %{pos_to_vertex: pos_to_vertex_map}} = _graph) do
-    Map.get(edges, {Map.get(pos_to_vertex_map, from)[:vertex], Map.get(pos_to_vertex_map, to)[:vertex]})
+  defp default_edge_info(from, to, %{edges: edges} = _graph) do
+    Map.get(edges, {from, to})
   end
 
-  defp neighbors(vertex_pos, adjacency_table, :out_edges) do
-    Adjacency.row(adjacency_table, vertex_pos)
+  defp neighbors(vertex_index, adjacency_table, :out_edges) do
+    Adjacency.row(adjacency_table, vertex_index)
   end
 
-  defp neighbors(vertex_pos, adjacency_table, :in_edges) do
-    Adjacency.column(adjacency_table, vertex_pos)
+  defp neighbors(vertex_index, adjacency_table, :in_edges) do
+    Adjacency.column(adjacency_table, vertex_index)
   end
 
   defp edge_vertices(v1, v2, :out_edges) do
@@ -81,7 +98,7 @@ defmodule BitGraph do
     {v2, v1}
   end
 
-  defp get_vertex_pos(graph, vertex) do
-    Map.get(graph[:vertices][:id_to_pos], vertex)
+  def get_vertex_index(graph, vertex) do
+    Map.get(graph[:vertices][:id_to_index], vertex)
   end
 end

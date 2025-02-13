@@ -1,6 +1,8 @@
 defmodule BitGraphTest do
   use ExUnit.Case
 
+  alias BitGraph.Adjacency
+
   describe "BitGraph" do
     test "create graph" do
       graph = BitGraph.new()
@@ -32,6 +34,42 @@ defmodule BitGraphTest do
       assert b_a_edge.to == "A"
       assert 2 == BitGraph.edges(graph, "A") |> MapSet.size()
       assert 2 == BitGraph.edges(graph, "B") |> MapSet.size()
+    end
+
+    test "delete edge" do
+      graph = BitGraph.new()
+      graph = BitGraph.add_edge(graph, :v1, :v2)
+      assert map_size(graph.edges) == 1
+      assert adjacent_vertices?(graph, :v1, :v2)
+      ## Try to delete non-existing edge
+      graph = BitGraph.delete_edge(graph, :v1, :v3)
+      assert map_size(graph.edges) == 1
+      ## Delete existing edge
+      graph = BitGraph.delete_edge(graph, :v1, :v2)
+      assert map_size(graph.edges) == 0
+      refute adjacent_vertices?(graph, :v1, :v2)
+    end
+
+    test "delete vertex" do
+      graph = BitGraph.new()
+      graph = BitGraph.add_edge(graph, :a, :b)
+      assert graph.vertices.num_vertices == 2
+      assert map_size(graph.edges) == 1
+
+      assert adjacent_vertices?(graph, :a, :b)
+
+      graph = BitGraph.delete_vertex(graph, :b)
+      assert graph.vertices.num_vertices == 1
+      assert map_size(graph.edges) == 0
+      refute adjacent_vertices?(graph, :a, :b)
+
+    end
+
+    defp adjacent_vertices?(graph, v1, v2) do
+      graph[:adjacency]
+      |> Adjacency.get(BitGraph.get_vertex_index(graph, v1),
+      BitGraph.get_vertex_index(graph, v2)
+      ) == 1
     end
 
   end

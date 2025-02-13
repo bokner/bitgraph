@@ -29,8 +29,12 @@ defmodule BitGraph.Adjacency do
           bit_vector: bit_vector,
           table_dimension: table_dimension
         }, i, j
-      ) do
-    :bit_vector.get(bit_vector, pos(i, j, table_dimension))
+      ) when is_integer(i) and is_integer(j) do
+    :bit_vector.get(bit_vector, position(i, j, table_dimension))
+  end
+
+  def get(_adjacency, _, _) do
+    0
   end
 
   def set(
@@ -38,8 +42,12 @@ defmodule BitGraph.Adjacency do
           bit_vector: bit_vector,
           table_dimension: table_dimension
         }, i, j
-      ) do
-    :bit_vector.set(bit_vector, pos(i, j, table_dimension))
+      )  when is_integer(i) and is_integer(j) do
+    :bit_vector.set(bit_vector, position(i, j, table_dimension))
+  end
+
+  def set(_adjacency, _, _) do
+    0
   end
 
   def clear(
@@ -47,15 +55,19 @@ defmodule BitGraph.Adjacency do
           bit_vector: bit_vector,
           table_dimension: table_dimension
         }, i, j
-      ) do
-    :bit_vector.clear(bit_vector, pos(i, j, table_dimension))
+      ) when is_integer(i) and is_integer(j) do
+    :bit_vector.clear(bit_vector, position(i, j, table_dimension))
+  end
+
+  def clear(_adjacency, _, _) do
+    0
   end
 
   def row(
         %{
           table_dimension: table_dimension
         } = table, row
-      ) do
+      ) when is_integer(row) do
     Enum.reduce(1..table_dimension, MapSet.new(), fn j, acc ->
       if get(table, row, j) == 1 do
         MapSet.put(acc, j)
@@ -65,11 +77,15 @@ defmodule BitGraph.Adjacency do
     end)
   end
 
+  def row(_adjacency, _row) do
+    MapSet.new()
+  end
+
   def column(
     %{
       table_dimension: table_dimension
     } = table, column
-  ) do
+  ) when is_integer(column) do
     Enum.reduce(1..table_dimension, MapSet.new(), fn j, acc ->
       if get(table, j, column) == 1 do
         MapSet.put(acc, j)
@@ -77,9 +93,17 @@ defmodule BitGraph.Adjacency do
         acc
       end
     end)
-end
+  end
 
-  defp pos(i, j, table_dimension) do
+  def column(_adjacency, _row) do
+    MapSet.new()
+  end
+
+  defp position(i, j, table_dimension) when is_integer(i) and is_integer(j) do
     (i - 1) * table_dimension + j - 1
+  end
+
+  defp position(_i, _j, _d) do
+    nil
   end
 end
