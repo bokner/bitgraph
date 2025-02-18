@@ -9,6 +9,24 @@ defmodule BitGraphTest do
       assert graph.vertices.num_vertices == 0
     end
 
+    test "copy graph" do
+      edge_data = %{label: "a->b"}
+      graph =
+        BitGraph.new()
+        |> BitGraph.add_vertex(:a, %{label: "a"})
+        |> BitGraph.add_vertex(:b, %{label: "b"})
+        |> BitGraph.add_edge(:a, :b, edge_data)
+      copy = BitGraph.copy(graph)
+
+      assert length(BitGraph.vertices(graph)) == 2
+      assert MapSet.size(BitGraph.out_edges(copy, :a)) == 1
+      assert MapSet.size(BitGraph.in_edges(copy, :b)) == 1
+
+      assert BitGraph.get_vertex(copy, :a, [:opts, :label]) == "a"
+      assert BitGraph.get_vertex(copy, :b, [:opts, :label]) == "b"
+      assert BitGraph.get_edge(copy, :a, :b) |> Map.get(:opts) == edge_data
+    end
+
     test "add vertex" do
       graph = BitGraph.new()
       graph = BitGraph.add_vertex(graph, "A")
@@ -26,6 +44,7 @@ defmodule BitGraphTest do
       vertex_data = [label: "a", weight: 1]
       graph = BitGraph.add_vertex(graph, :a, vertex_data)
       assert BitGraph.get_vertex(graph, :a, [:opts]) == vertex_data
+       and BitGraph.get_vertex(graph, :a, [:opts, :weight]) == 1
        and BitGraph.get_vertex(graph, :a, [:vertex]) == :a
       refute BitGraph.get_vertex(graph, :a, [:something])
 

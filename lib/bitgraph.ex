@@ -13,7 +13,12 @@ defmodule BitGraph do
     %{
       vertices: V.init_vertices(opts),
       edges: E.init_edges(opts),
-      adjacency: Adjacency.init_adjacency_table(opts[:max_vertices])}
+      adjacency: Adjacency.init_adjacency_table(opts[:max_vertices])
+    }
+  end
+
+  def copy(%{adjacency: adjacency} = graph) do
+    Map.put(graph, :adjacency, Adjacency.copy(adjacency))
   end
 
   def default_opts() do
@@ -67,6 +72,13 @@ defmodule BitGraph do
     E.delete_edge(graph, from_index, to_index)
     Map.update(graph, :edges, %{}, fn edges -> Map.delete(edges, {from_index, to_index}) end)
     ) || graph
+  end
+
+  def get_edge(%{edges: edges} = graph, from, to) do
+    Map.get(edges, {
+      V.get_vertex_index(graph, from),
+      V.get_vertex_index(graph, to)
+      })
   end
 
   def edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
