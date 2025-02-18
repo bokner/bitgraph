@@ -26,6 +26,10 @@ defmodule BitGraph.E do
       Adjacency.set(graph[:adjacency], from, to)
   end
 
+  def edges(%{edges: edges} = _graph) do
+    edges
+  end
+
   def out_edges(graph, vertex) when is_integer(vertex) do
     Adjacency.row(graph[:adjacency], vertex)
   end

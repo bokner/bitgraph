@@ -33,10 +33,10 @@ defmodule BitGraphTest do
       assert graph.vertices.num_vertices == 1
       ## Adding existing vertex should not increase the number of vertices
       graph = BitGraph.add_vertex(graph, "A")
-      assert graph.vertices.num_vertices == 1
+      assert  BitGraph.num_vertices(graph) == 1
       ## Adding a new vertex should increase the number of vertices
       graph = BitGraph.add_vertex(graph, "B")
-      assert graph.vertices.num_vertices == 2
+      assert BitGraph.num_vertices(graph) == 2
     end
 
     test "get/update vertex info" do
@@ -70,6 +70,7 @@ defmodule BitGraphTest do
       assert b_a_edge.to == "A"
       assert 2 == BitGraph.edges(graph, "A") |> MapSet.size()
       assert 2 == BitGraph.edges(graph, "B") |> MapSet.size()
+      assert 2 == BitGraph.num_edges(graph)
     end
 
     test "delete edge" do
@@ -89,13 +90,13 @@ defmodule BitGraphTest do
     test "delete vertex" do
       graph = BitGraph.new()
       graph = BitGraph.add_edge(graph, :a, :b)
-      assert graph.vertices.num_vertices == 2
+      assert BitGraph.num_vertices(graph) == 2
       assert map_size(graph.edges) == 1
 
       assert adjacent_vertices?(graph, :a, :b)
 
       graph = BitGraph.delete_vertex(graph, :b)
-      assert graph.vertices.num_vertices == 1
+      assert BitGraph.num_vertices(graph) == 1
       assert map_size(graph.edges) == 0
       refute adjacent_vertices?(graph, :a, :b)
 

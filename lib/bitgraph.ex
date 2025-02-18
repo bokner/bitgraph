@@ -52,6 +52,10 @@ defmodule BitGraph do
     graph[:vertices][:index_to_vertex] |> Map.values() |> Enum.map(&(&1.vertex))
   end
 
+  def num_vertices(graph) do
+    graph[:vertices][:num_vertices]
+  end
+
   def add_edge(graph, from, to, opts \\ []) do
     graph
     |> V.add_vertex(from, opts)
@@ -79,6 +83,14 @@ defmodule BitGraph do
       V.get_vertex_index(graph, from),
       V.get_vertex_index(graph, to)
       })
+  end
+
+  def edges(graph) do
+    E.edges(graph)
+  end
+
+  def num_edges(graph) do
+    edges(graph) |> map_size()
   end
 
   def edges(graph, vertex, edge_fun \\ &default_edge_info/3) do

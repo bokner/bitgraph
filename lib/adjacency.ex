@@ -98,7 +98,7 @@ defmodule BitGraph.Adjacency do
     MapSet.new()
   end
 
-  def copy(%{bit_vector: {:bit_vector, _, source_ref} = bit_vector, table_dimension: dimension} = adjacency) do
+  def copy(%{bit_vector: {:bit_vector, _, source_ref} = _bit_vector, table_dimension: dimension} = adjacency) do
       vector_copy = {:bit_vector, _size, target_ref} = allocate(dimension)
       Enum.each(1..:atomics.info(source_ref)[:size], fn idx ->
         :atomics.put(target_ref, idx, :atomics.get(source_ref, idx))
