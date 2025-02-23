@@ -30,11 +30,11 @@ defmodule BitGraph.E do
     edges
   end
 
-  def out_edges(graph, vertex) when is_integer(vertex) do
+  def out_neighbors(graph, vertex) when is_integer(vertex) do
     Adjacency.row(graph[:adjacency], vertex)
   end
 
-  def in_edges(graph, vertex) when is_integer(vertex) do
+  def in_neighbors(graph, vertex) when is_integer(vertex) do
     Adjacency.column(graph[:adjacency], vertex)
   end
 

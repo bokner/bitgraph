@@ -30,6 +30,15 @@ defmodule BitGraph do
     |> V.add_vertex(vertex, opts)
   end
 
+  def add_vertices(graph, vertices) do
+    Enum.reduce(vertices, graph, fn
+      {vertex, opts}, acc ->
+        add_vertex(acc, vertex, opts)
+      vertex, acc ->
+        add_vertex(acc, vertex)
+    end)
+  end
+
   def delete_vertex(graph, vertex) do
     vertex_index = V.get_vertex_index(graph, vertex)
     graph
@@ -65,6 +74,15 @@ defmodule BitGraph do
             to_index = V.get_vertex_index(graph, to)
             E.add_edge(graph, from_index, to_index)
             Map.update(graph, :edges, %{}, fn edges -> Map.put(edges, {from_index, to_index}, E.new(from, to, opts)) end)
+    end)
+  end
+
+  def add_edges(graph, edges) do
+    Enum.reduce(edges, graph, fn
+      {from, to}, acc ->
+        add_edge(acc, from, to)
+      {from, to, opts}, acc ->
+        add_edge(acc, from, to, opts)
     end)
   end
 
@@ -138,11 +156,11 @@ defmodule BitGraph do
   end
 
   defp neighbors_impl(graph, vertex_index, :out_edges) do
-    E.out_edges(graph, vertex_index)
+    E.out_neighbors(graph, vertex_index)
   end
 
   defp neighbors_impl(graph, vertex_index, :in_edges) do
-    E.in_edges(graph, vertex_index)
+    E.in_neighbors(graph, vertex_index)
   end
 
   defp edge_vertices(v1, v2, :out_edges) do

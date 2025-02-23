@@ -19,6 +19,10 @@ defmodule BitGraph.V do
     Map.get(graph[:vertices][:id_to_index], vertex)
   end
 
+  def get_vertex(graph, vertex_idx) when is_integer(vertex_idx) do
+    get_vertex(graph, vertex_idx, [:vertex])
+  end
+
   def get_vertex(graph, vertex_idx, aux \\ [])
 
   def get_vertex(_graph, vertex_idx, _aux) when is_nil(vertex_idx) do
