@@ -120,11 +120,11 @@ defmodule BitGraph do
   end
 
   def in_neighbors(graph, vertex) do
-    in_edges(graph, vertex, fn from, _to, graph -> V.get_vertex(graph, from)[:vertex] end)
+    in_edges(graph, vertex, fn from, _to, graph -> V.get_vertex(graph, from) end)
   end
 
   def out_neighbors(graph, vertex) do
-    out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to)[:vertex] end)
+    out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to) end)
   end
 
   def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
