@@ -1,5 +1,5 @@
 defmodule BitGraph.Dfs do
-  alias BitGraph.{V, E}
+  alias BitGraph.E
   alias BitGraph.Array
 
   @moduledoc """
@@ -12,7 +12,11 @@ defmodule BitGraph.Dfs do
   @black_vertex 1
   @gray_vertex 2
 
-  def run(graph, root \\ 1, opts \\ [])
+  def run(graph, vertices \\ :all, opts \\ [])
+
+  def run(graph, :all, opts) do
+    run(graph, Enum.shuffle(1..BitGraph.num_vertices(graph)), opts)
+  end
 
   def run(graph, root, opts) when is_integer(root) do
     run(graph, [root], opts)
@@ -21,8 +25,9 @@ defmodule BitGraph.Dfs do
   def run(graph, vertices, opts) when is_list(vertices) do
     reduce_fun = Keyword.get(opts, :reduce_fun, default_reduce_fun())
     reverse_dfs? = Keyword.get(opts, :reverse_dfs, false)
+    initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices))
 
-    Enum.reduce(vertices, init_dfs(graph, hd(vertices)), fn vertex, state_acc ->
+    Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
       if vertex_color(state_acc, vertex) == @white_vertex do
         dfs_impl(graph, vertex, nil, state_acc, reduce_fun, reverse_dfs?)
       else
@@ -30,11 +35,6 @@ defmodule BitGraph.Dfs do
       end
     end)
   end
-
-  def dfs(graph, root, opts) do
-    dfs(graph, V.get_vertex_index(graph, root), opts)
-  end
-
 
   defp init_dfs(graph, root) do
     num_vertices = BitGraph.num_vertices(graph)
@@ -63,7 +63,8 @@ defmodule BitGraph.Dfs do
       parent && Array.put(state[:parent], vertex, parent)
       Array.put(state[:color], vertex, @gray_vertex)
       neighbors = reverse_dfs? && E.in_neighbors(graph, vertex) || E.out_neighbors(graph, vertex)
-      Enum.reduce(neighbors, state, fn
+      initial_state = apply_reduce(graph, vertex, state, reduce_fun)
+      Enum.reduce(neighbors, initial_state, fn
         neighbor, state_acc ->
           if vertex_color(state, neighbor) != @white_vertex do
             state_acc
@@ -83,7 +84,7 @@ defmodule BitGraph.Dfs do
     :counters.get(timer, 1)
   end
 
-  defp vertex_color(state, vertex) do
+  def vertex_color(state, vertex) do
     Array.get(state[:color], vertex)
   end
 
