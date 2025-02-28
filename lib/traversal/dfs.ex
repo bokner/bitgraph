@@ -94,8 +94,8 @@ defmodule BitGraph.Dfs do
   end
 
   defp default_reduce_fun() do
-    fn _graph, vertex, %{root: root, acc: acc} = _state ->
-      [vertex | (acc || [root])]
+    fn _graph, _vertex, %{acc: _acc} = _state ->
+      nil
     end
   end
 
