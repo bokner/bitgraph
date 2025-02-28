@@ -1,19 +1,31 @@
 defmodule BitGraph.Algorithms do
   alias BitGraph.Dfs
-  alias BitGraph.Array
 
   def topsort(graph) do
-    Dfs.run(graph)
-    |> Map.get(:time_out)
-    |> Array.to_list()
-    |> Enum.with_index(1)
-    |> Enum.sort(:desc)
-    |> Enum.map(fn {_time_out, vertex_idx} -> vertex_idx end)
+    graph
+    |> Dfs.run()
+    |> then(fn state ->
+      Dfs.acyclic?(state) && Dfs.order(state, :out, :desc) || false
+    end)
+  end
+
+  def acyclic?(graph) do
+    graph
+    |> BitGraph.vertex_indices()
+    |> Enum.reduce_while(nil, fn v, state_acc ->
+      state_acc = Dfs.run(graph, v, state: state_acc)
+      Dfs.acyclic?(state_acc) && {:halt, true} || {:cont, state_acc}
+    end)
+    |> then(
+      fn true -> true
+      _ -> false
+    end)
   end
 
   def strong_components(graph) do
     graph
-    |> topsort()
+    |> Dfs.run()
+    |> Dfs.order(:out, :desc)
     |> Enum.reduce({nil, []}, fn v, {state_acc, components_acc} ->
       state = Dfs.run(graph, v,
         reverse_dfs: true,

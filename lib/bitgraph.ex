@@ -61,6 +61,10 @@ defmodule BitGraph do
     graph[:vertices][:index_to_vertex] |> Map.values() |> Enum.map(&(&1.vertex))
   end
 
+  def vertex_indices(graph) do
+    Range.to_list(1..num_vertices(graph))
+  end
+
   def num_vertices(graph) do
     graph[:vertices][:num_vertices]
   end
@@ -73,7 +77,10 @@ defmodule BitGraph do
             from_index = V.get_vertex_index(graph, from)
             to_index = V.get_vertex_index(graph, to)
             E.add_edge(graph, from_index, to_index)
-            Map.update(graph, :edges, %{}, fn edges -> Map.put(edges, {from_index, to_index}, E.new(from, to, opts)) end)
+            Map.update(graph, :edges, %{},
+              fn edges ->
+                Map.put(edges, {from_index, to_index}, E.new(from, to, opts))
+              end)
     end)
   end
 

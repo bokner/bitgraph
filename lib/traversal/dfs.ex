@@ -9,13 +9,13 @@ defmodule BitGraph.Dfs do
   """
 
   @white_vertex 0
-  @black_vertex 1
-  @gray_vertex 2
+  @gray_vertex 1
+  @black_vertex 2
 
   def run(graph, vertices \\ :all, opts \\ [])
 
   def run(graph, :all, opts) do
-    run(graph, Enum.shuffle(1..BitGraph.num_vertices(graph)), opts)
+    run(graph, BitGraph.vertex_indices(graph), opts)
   end
 
   def run(graph, root, opts) when is_integer(root) do
@@ -40,6 +40,7 @@ defmodule BitGraph.Dfs do
     num_vertices = BitGraph.num_vertices(graph)
     %{
       root: root,
+      dag: true,
       timer: :counters.new(1, [:atomics]),
       ## Color (white, black or gray)
       #### white if the vertex hasn't been visited,
@@ -66,10 +67,14 @@ defmodule BitGraph.Dfs do
       initial_state = apply_reduce(graph, vertex, state, reduce_fun)
       Enum.reduce(neighbors, initial_state, fn
         neighbor, state_acc ->
-          if vertex_color(state, neighbor) != @white_vertex do
-            state_acc
-          else
-            dfs_impl(graph, neighbor, vertex, apply_reduce(graph, neighbor, state_acc, reduce_fun), reduce_fun, reverse_dfs?)
+          case vertex_color(state, neighbor) do
+            @gray_vertex -> set_acyclic(state_acc)
+            @black_vertex -> state_acc
+            @white_vertex ->
+              dfs_impl(graph, neighbor, vertex,
+                apply_reduce(
+                  graph, neighbor, state_acc, reduce_fun),
+                  reduce_fun, reverse_dfs?)
           end
       end)
       |> tap(fn _ ->
@@ -94,12 +99,32 @@ defmodule BitGraph.Dfs do
     end
   end
 
-  defp apply_reduce(_graph, _vertex, state, nil) do
-    state
-  end
-
   defp apply_reduce(graph, vertex, state, reduce_fun) when is_function(reduce_fun, 3) do
     acc = reduce_fun.(graph, vertex, state)
     Map.put(state, :acc, acc)
+  end
+
+  def acyclic?(state) do
+    state.dag
+  end
+
+  defp set_acyclic(state) do
+    Map.put(state, :dag, false)
+  end
+
+  def order(state, :in, order) when order in [:desc, :asc] do
+    order_impl(state[:time_in], order)
+  end
+
+  def order(state, :out, order) when order in [:desc, :asc] do
+    order_impl(state[:time_out], order)
+  end
+
+  defp order_impl(arr_ref, order) do
+    arr_ref
+    |> Array.to_list()
+    |> Enum.with_index(1)
+    |> Enum.sort(order)
+    |> Enum.map(fn {_time_out, vertex_idx} -> vertex_idx end)
   end
 end
