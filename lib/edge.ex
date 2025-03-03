@@ -26,6 +26,10 @@ defmodule BitGraph.E do
       Adjacency.set(graph[:adjacency], from, to)
   end
 
+  def edge?(graph, from, to) when  is_integer(from) and is_integer(to) do
+    Adjacency.get(graph[:adjacency], from, to) == 1
+  end
+
   def edges(%{edges: edges} = _graph) do
     edges
   end
@@ -36,6 +40,14 @@ defmodule BitGraph.E do
 
   def in_neighbors(graph, vertex) when is_integer(vertex) do
     Adjacency.column(graph[:adjacency], vertex)
+  end
+
+  def out_degree(graph, vertex) when is_integer(vertex) do
+    out_neighbors(graph, vertex) |> MapSet.size()
+  end
+
+  def in_degree(graph, vertex) when is_integer(vertex) do
+    in_neighbors(graph, vertex) |> MapSet.size()
   end
 
   def delete_edge(%{adjacency: adjacency} = _graph, from, to) when is_integer(from) and is_integer(to) do

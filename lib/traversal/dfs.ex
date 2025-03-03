@@ -23,13 +23,16 @@ defmodule BitGraph.Dfs do
   end
 
   def run(graph, vertices, opts) when is_list(vertices) do
-    reduce_fun = Keyword.get(opts, :reduce_fun, default_reduce_fun())
-    reverse_dfs? = Keyword.get(opts, :reverse_dfs, false)
-    initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices))
+    initial_state = (Keyword.get(opts, :state) || init_dfs(graph, hd(vertices)))
+    |> Map.put(:reverse_dfs, Keyword.get(opts, :reverse_dfs, false))
+    |> Map.put(:reduce_fun,
+      Keyword.get(opts, :reduce_fun, default_reduce_fun())
+      |> normalize_reduce_fun()
+    )
 
     Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
       if vertex_color(state_acc, vertex) == @white_vertex do
-        dfs_impl(graph, vertex, nil, state_acc, reduce_fun, reverse_dfs?)
+        dfs_impl(graph, vertex, state_acc)
       else
         state_acc
       end
@@ -57,25 +60,24 @@ defmodule BitGraph.Dfs do
     }
   end
 
-  defp dfs_impl(graph, vertex, parent, state, reduce_fun, reverse_dfs?)
-    when is_integer(vertex) and is_function(reduce_fun, 3) do
+  defp dfs_impl(graph, vertex, %{reverse_dfs: reverse_dfs} = state)
+    when is_integer(vertex) do
       time = inc_timer(state)
       Array.put(state[:time_in], vertex, time)
-      parent && Array.put(state[:parent], vertex, parent)
       Array.put(state[:color], vertex, @gray_vertex)
-      neighbors = reverse_dfs? && E.in_neighbors(graph, vertex) || E.out_neighbors(graph, vertex)
-      initial_state = apply_reduce(graph, vertex, state, reduce_fun)
-      Enum.reduce(neighbors, initial_state, fn
+      {_action, initial_state} = apply_reduce(state, vertex)
+      Enum.reduce_while(vertex_neighbors(graph, vertex, reverse_dfs), initial_state, fn
         neighbor, state_acc ->
           case vertex_color(state, neighbor) do
-            @gray_vertex -> set_acyclic(state_acc)
             @black_vertex -> state_acc
+            @gray_vertex  ->
+              IO.inspect(%{vertex: vertex, neighbor: neighbor})
+              on_loop(neighbor, state_acc)
             @white_vertex ->
-              dfs_impl(graph, neighbor, vertex,
-                apply_reduce(
-                  graph, neighbor, state_acc, reduce_fun),
-                  reduce_fun, reverse_dfs?)
+              Array.put(state[:parent], neighbor, vertex)
+              dfs_impl(graph, neighbor, state_acc)
           end
+          |> to_reduce_while_result()
       end)
       |> tap(fn _ ->
       time = inc_timer(state)
@@ -94,22 +96,48 @@ defmodule BitGraph.Dfs do
   end
 
   defp default_reduce_fun() do
-    fn _graph, _vertex, %{acc: _acc} = _state ->
+    fn %{acc: _acc} = _state, _vertex, _loop? ->
       nil
     end
   end
 
-  defp apply_reduce(graph, vertex, state, reduce_fun) when is_function(reduce_fun, 3) do
-    acc = reduce_fun.(graph, vertex, state)
-    Map.put(state, :acc, acc)
+  defp normalize_reduce_fun(reduce_fun) when is_function(reduce_fun, 2) do
+    fn state, vertex, _loop? -> reduce_fun.(state, vertex) end
+  end
+
+  defp normalize_reduce_fun(reduce_fun) when is_function(reduce_fun, 3) do
+    reduce_fun
+  end
+
+  defp apply_reduce(%{reduce_fun: reduce_fun} = state, vertex, opts \\ []) when is_function(reduce_fun, 3) do
+    {next_action, acc} = case reduce_fun.(state, vertex, Keyword.get(opts, :loop, false)) do
+      {:next, acc} -> {:next, acc}
+      {:stop, acc} -> {:stop, acc}
+      acc -> {:next, acc}
+    end
+    {next_action, Map.put(state, :acc, acc)}
+  end
+
+  defp to_reduce_while_result(result) do
+    case result do
+      {:next, acc} -> {:cont, acc}
+      {:stop, acc} -> {:halt, acc}
+      acc -> {:cont, acc}
+    end
+  end
+
+  defp vertex_neighbors(graph, vertex, reverse_dfs) do
+    reverse_dfs && E.in_neighbors(graph, vertex) || E.out_neighbors(graph, vertex)
   end
 
   def acyclic?(state) do
     state.dag
   end
 
-  defp set_acyclic(state) do
+  ## The vertex has closed the loop
+  defp on_loop(vertex, state) do
     Map.put(state, :dag, false)
+    |> apply_reduce(vertex, loop: true)
   end
 
   def order(state, :in, order) when order in [:desc, :asc] do

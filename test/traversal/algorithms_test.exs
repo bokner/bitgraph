@@ -3,6 +3,7 @@ defmodule BitGraphTest.Algorithms do
 
   alias BitGraph.Common
   alias BitGraph.Algorithms
+  alias BitGraph.V
 
   test "Topsort for DAG" do
     edges = [
@@ -56,8 +57,6 @@ defmodule BitGraphTest.Algorithms do
       {:f, :g},
       {:g, :f}, {:i, :f},
       {:h, :d}, {:h, :g}
-
-
     ]
     graph = BitGraph.new() |> BitGraph.add_edges(edges)
     strong_components = Algorithms.strong_components(graph)
@@ -123,4 +122,44 @@ defmodule BitGraphTest.Algorithms do
     )
     assert Algorithms.acyclic?(graph3)
   end
+
+  test "get_cycle" do
+    ## Acyclic graph
+    graph1 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:a, :c}, {:b, :c}])
+    refute Enum.any?(BitGraph.vertex_indices(graph1),
+      fn v_idx -> Algorithms.get_cycle(graph1, v_idx) end)
+
+    ## Cyclic triangle
+    graph2 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:c, :a}, {:b, :c}])
+    ## For every starting vertex, there is a cycle of length 3
+    assert Enum.all?(BitGraph.vertex_indices(graph2),
+      fn v_idx ->
+        Algorithms.get_cycle(graph2, v_idx)
+        |> MapSet.new() |> MapSet.size() == 3
+      end)
+
+    ## Bigger graph
+    edges = [
+      {:a, :b},
+      {:b, :c}, {:b, :e}, {:b, :f},
+      {:c, :d}, {:c, :g},
+      {:d, :c}, {:d, :h},
+      {:e, :a}, {:e, :f},
+      {:f, :g},
+      {:g, :f}, {:i, :f},
+      {:h, :d}, {:h, :g}
+    ]
+    wiki_graph = BitGraph.new() |> BitGraph.add_edges(edges)
+    ## No cycle for edge with a single neighbor
+    refute Algorithms.get_cycle(wiki_graph, V.get_vertex_index(wiki_graph, :i))
+    assert Enum.all?([:a, :b, :c, :d, :e, :f, :g],
+    fn v ->
+      v_idx = V.get_vertex_index(wiki_graph, v)
+        Common.cycle?(
+          wiki_graph,
+          Algorithms.get_cycle(wiki_graph, v_idx)
+      ) |> IO.inspect()
+    end)
+  end
+
 end
