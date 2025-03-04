@@ -23,13 +23,7 @@ defmodule BitGraph.Dfs do
   end
 
   def run(graph, vertices, opts) when is_list(vertices) do
-    initial_state = (Keyword.get(opts, :state) || init_dfs(graph, hd(vertices)))
-    |> Map.put(:reverse_dfs, Keyword.get(opts, :reverse_dfs, false))
-    |> Map.put(:reduce_fun,
-      Keyword.get(opts, :reduce_fun, default_reduce_fun())
-      |> normalize_reduce_fun()
-    )
-
+    initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices), opts)
     Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
       if vertex_color(state_acc, vertex) == @white_vertex do
         dfs_impl(graph, vertex, state_acc)
@@ -39,10 +33,13 @@ defmodule BitGraph.Dfs do
     end)
   end
 
-  defp init_dfs(graph, root) do
+  defp init_dfs(graph, root, opts) do
     num_vertices = BitGraph.num_vertices(graph)
     %{
       root: root,
+      reverse_dfs: Keyword.get(opts, :reverse_dfs, false),
+      reduce_fun: Keyword.get(opts, :reduce_fun, default_reduce_fun())
+      |> normalize_reduce_fun(),
       dag: true,
       timer: :counters.new(1, [:atomics]),
       ## Color (white, black or gray)
@@ -68,13 +65,12 @@ defmodule BitGraph.Dfs do
       {_action, initial_state} = apply_reduce(state, vertex)
       Enum.reduce_while(vertex_neighbors(graph, vertex, reverse_dfs), initial_state, fn
         neighbor, state_acc ->
+          Array.put(state[:parent], neighbor, vertex)
           case vertex_color(state, neighbor) do
             @black_vertex -> state_acc
             @gray_vertex  ->
-              IO.inspect(%{vertex: vertex, neighbor: neighbor})
               on_loop(neighbor, state_acc)
             @white_vertex ->
-              Array.put(state[:parent], neighbor, vertex)
               dfs_impl(graph, neighbor, state_acc)
           end
           |> to_reduce_while_result()

@@ -1,7 +1,7 @@
 defmodule BitGraph.Algorithms do
   alias BitGraph.Dfs
   alias BitGraph.Array
-  alias BitGraph.{E, V}
+  alias BitGraph.{E}
 
   def topsort(graph) do
     graph
@@ -46,40 +46,58 @@ defmodule BitGraph.Algorithms do
 
   def get_cycle(graph, vertex) when is_integer(vertex) do
     if E.in_degree(graph, vertex) > 0 && E.out_degree(graph, vertex) > 0 do
-      state = Dfs.run(graph, vertex, reduce_fun:
+      Dfs.run(graph, vertex, reduce_fun:
         fn %{acc: acc} = state, v, loop?  ->
-          IO.inspect({V.get_vertex(graph, v), loop?}, label: :vertex)
-          if loop? && E.edge?(graph, v, vertex) do
-            IO.inspect("Back edge!")
-            {:stop, build_cycle(vertex, state[:parent])
-          }
-          else
-            {:next, false}
-          end
-
-          #vertex_color(graph, v) == @gray_vertex
+          if loop? && (v == vertex) do
+              {:stop,
+                build_cycle(graph, vertex, state[:parent])
+              }
+            else
+              {:next, acc}
+            end
         end
       )
-      #!Dfs.acyclic?(state) && build_cycle(vertex, state[:parent])
-      state[:acc]
+      |> Map.get(:acc)
     else
       false
     end
   end
 
-  defp build_cycle(start, sequence) do
-    build_cycle(Array.get(sequence, start), sequence, [start], MapSet.new([start]))
-  end
-
-  defp build_cycle(next, sequence, acc, visited) do
-    if next == 0 || (next in visited) do
-      acc
-    else
-      build_cycle(
-        Array.get(sequence, next),
-        sequence,
-        [next | acc],
-        MapSet.put(visited, next))
+    ## Build cycle starting from vertex
+    defp build_cycle(graph, start_vertex, parents_ref) do
+      build_cycle(graph, start_vertex, parents_ref, [start_vertex])
     end
-  end
+
+    ## Move from vertices to their parents starting from given vertex
+    defp build_cycle(graph, start_vertex, parents_ref, acc) do
+      build_cycle(graph, start_vertex, Array.get(parents_ref, start_vertex), parents_ref, acc)
+    end
+
+    defp build_cycle(graph, start_vertex, vertex, parents_ref, acc) do
+      # Stop if we find vertex that is an out-neighbor of the vertex
+      # we started with.
+      if E.edge?(graph, start_vertex, vertex) do
+        [vertex | acc]
+      else
+        next_vertex = Array.get(parents_ref, vertex)
+        build_cycle(graph, start_vertex, next_vertex, parents_ref, [vertex | acc])
+      end
+    end
+
+
+  # defp build_cycle(start, sequence) do
+  #   build_cycle(Array.get(sequence, start), sequence, [start], MapSet.new([start]))
+  # end
+
+  # defp build_cycle(next, sequence, acc, visited) do
+  #   if next == 0 || (next in visited) do
+  #     acc
+  #   else
+  #     build_cycle(
+  #       Array.get(sequence, next),
+  #       sequence,
+  #       [next | acc],
+  #       MapSet.put(visited, next))
+  #   end
+  # end
 end

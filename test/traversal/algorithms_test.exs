@@ -158,7 +158,7 @@ defmodule BitGraphTest.Algorithms do
         Common.cycle?(
           wiki_graph,
           Algorithms.get_cycle(wiki_graph, v_idx)
-      ) |> IO.inspect()
+      )
     end)
   end
 
