@@ -25,6 +25,7 @@ defmodule BitGraph.Dfs do
   def run(graph, vertices, opts) when is_list(vertices) do
     initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices), opts)
     Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
+      state_acc = Map.put(state_acc, :root, vertex)
       if vertex_color(state_acc, vertex) == @white_vertex do
         dfs_impl(graph, vertex, state_acc)
       else
@@ -37,7 +38,7 @@ defmodule BitGraph.Dfs do
     num_vertices = BitGraph.num_vertices(graph)
     %{
       root: root,
-      reverse_dfs: Keyword.get(opts, :reverse_dfs, false),
+      direction: Keyword.get(opts, :direction, :forward),
       reduce_fun: Keyword.get(opts, :reduce_fun, default_reduce_fun())
       |> normalize_reduce_fun(),
       dag: true,
@@ -57,13 +58,13 @@ defmodule BitGraph.Dfs do
     }
   end
 
-  defp dfs_impl(graph, vertex, %{reverse_dfs: reverse_dfs} = state)
+  defp dfs_impl(graph, vertex, %{direction: direction} = state)
     when is_integer(vertex) do
       time = inc_timer(state)
       Array.put(state[:time_in], vertex, time)
       Array.put(state[:color], vertex, @gray_vertex)
       {_action, initial_state} = apply_reduce(state, vertex)
-      Enum.reduce_while(vertex_neighbors(graph, vertex, reverse_dfs), initial_state, fn
+      Enum.reduce_while(vertex_neighbors(graph, vertex, direction), initial_state, fn
         neighbor, state_acc ->
           Array.put(state[:parent], neighbor, vertex)
           case vertex_color(state, neighbor) do
@@ -122,8 +123,17 @@ defmodule BitGraph.Dfs do
     end
   end
 
-  defp vertex_neighbors(graph, vertex, reverse_dfs) do
-    reverse_dfs && E.in_neighbors(graph, vertex) || E.out_neighbors(graph, vertex)
+  defp vertex_neighbors(graph, vertex, :forward) do
+    E.out_neighbors(graph, vertex)
+  end
+
+  defp vertex_neighbors(graph, vertex, :reverse) do
+    E.in_neighbors(graph, vertex)
+  end
+
+  defp vertex_neighbors(graph, vertex, :both) do
+    MapSet.union(vertex_neighbors(graph, vertex, :forward),
+    vertex_neighbors(graph, vertex, :reverse))
   end
 
   def acyclic?(state) do

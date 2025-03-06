@@ -24,13 +24,28 @@ defmodule BitGraph.Algorithms do
     end)
   end
 
+  def components(graph) do
+    Dfs.run(graph, :all, direction: :both, reduce_fun:
+      fn %{root: root, acc: acc} = _state, v, _loop?  ->
+        case acc do
+          nil -> %{root => MapSet.new([v])}
+          existing ->
+            Map.update(existing, root, MapSet.new([v]),
+            fn component -> MapSet.put(component, v) end)
+          end
+      end)
+      |> Map.get(:acc)
+      |> Map.values()
+  end
+
+  ## Kozaraju's
   def strong_components(graph) do
     graph
     |> Dfs.run()
     |> Dfs.order(:out, :desc)
     |> Enum.reduce({nil, []}, fn v, {state_acc, components_acc} ->
       state = Dfs.run(graph, v,
-        reverse_dfs: true,
+        direction: :reverse,
         state: state_acc,
         reduce_fun: fn %{acc: acc} = _state, vertex ->
           MapSet.put(acc || MapSet.new(), vertex)
@@ -84,20 +99,4 @@ defmodule BitGraph.Algorithms do
       end
     end
 
-
-  # defp build_cycle(start, sequence) do
-  #   build_cycle(Array.get(sequence, start), sequence, [start], MapSet.new([start]))
-  # end
-
-  # defp build_cycle(next, sequence, acc, visited) do
-  #   if next == 0 || (next in visited) do
-  #     acc
-  #   else
-  #     build_cycle(
-  #       Array.get(sequence, next),
-  #       sequence,
-  #       [next | acc],
-  #       MapSet.put(visited, next))
-  #   end
-  # end
 end

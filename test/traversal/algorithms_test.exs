@@ -162,4 +162,18 @@ defmodule BitGraphTest.Algorithms do
     end)
   end
 
+  test "components" do
+    edges = [
+      {:a, :b}, {:a, :c}, {:b, :c}, # component 1
+      {:d, :e}, {:d, :f}, {:e, :f}, # component 2
+    ]
+    graph = BitGraph.new() |> BitGraph.add_edges(edges)
+    components = Algorithms.components(graph)
+    assert length(components) == 2
+    assert Enum.sort([MapSet.new([1, 2, 3]), MapSet.new([4, 5, 6])]) ==
+      Enum.sort(components)
+    single_component = BitGraph.add_edge(graph, :c, :f)
+    assert length(Algorithms.components(single_component)) == 1
+  end
+
 end

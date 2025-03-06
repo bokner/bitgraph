@@ -103,6 +103,12 @@ defmodule BitGraph do
     ) || graph
   end
 
+  def delete_edges(graph, edges) do
+    Enum.reduce(edges, graph, fn {from, to}, acc ->
+      delete_edge(acc, from, to)
+    end)
+  end
+
   def get_edge(%{edges: edges} = graph, from, to) do
     Map.get(edges, {
       V.get_vertex_index(graph, from),
