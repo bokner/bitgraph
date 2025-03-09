@@ -18,7 +18,7 @@ defmodule BitGraph do
   end
 
   def copy(%{adjacency: adjacency} = graph) do
-    Map.put(graph, :adjacency, Adjacency.copy(adjacency))
+    Map.put(graph, :adjacency, Adjacency.copy(adjacency, graph.edges))
   end
 
   def default_opts() do

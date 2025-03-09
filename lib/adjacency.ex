@@ -98,12 +98,28 @@ defmodule BitGraph.Adjacency do
     MapSet.new()
   end
 
-  def copy(%{bit_vector: {:bit_vector, _, source_ref} = _bit_vector, table_dimension: dimension} = adjacency) do
+  def copy(%{bit_vector: {:bit_vector, _, source_ref} = _bit_vector, table_dimension: dimension} = adjacency, edges \\ nil) do
       vector_copy = {:bit_vector, _size, target_ref} = allocate(dimension)
-      Enum.each(1..:atomics.info(source_ref)[:size], fn idx ->
-        :atomics.put(target_ref, idx, :atomics.get(source_ref, idx))
-      end)
       Map.put(adjacency, :bit_vector, vector_copy)
+      |> tap(fn adjacency ->
+      if edges do
+        copy_from_edges(edges, adjacency)
+      else
+        copy_from_vector(source_ref, target_ref)
+      end
+    end)
+  end
+
+  defp copy_from_vector(source_ref, vector_copy_ref) do
+    Enum.each(1..:atomics.info(source_ref)[:size], fn idx ->
+      :atomics.put(vector_copy_ref, idx, :atomics.get(source_ref, idx))
+    end)
+  end
+
+  defp copy_from_edges(edges, adjacency) do
+    Enum.each(edges, fn {{from, to}, _edge_data} ->
+      set(adjacency, from, to)
+    end)
   end
 
   defp position(i, j, table_dimension) when is_integer(i) and is_integer(j) do
