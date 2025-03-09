@@ -7,7 +7,9 @@ defmodule Bitgraph.MixProject do
       version: "0.1.0",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      package: package(),
+      description: description()
     ]
   end
 
@@ -28,6 +30,23 @@ defmodule Bitgraph.MixProject do
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev], runtime: false},
       {:replbug, "~> 1.0.2", only: :dev}
+    ]
+  end
+
+  defp description() do
+    "Mutable directed graph"
+  end
+
+  defp package() do
+    [
+      # This option is only needed when you don't want to use the OTP application name
+      name: "bitgraph",
+      # These are the default files included in the package
+      files: ~w(lib src test .formatter.exs mix.exs README* LICENSE*
+                ),
+      exclude_patterns: ["misc/**", "scripts/**", "**/*._exs", "**/*._ex"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/bokner/bitgraph"}
     ]
   end
 end
