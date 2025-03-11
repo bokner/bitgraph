@@ -39,7 +39,7 @@ defmodule BitGraph.Algorithms do
   end
 
   ## Kozaraju's
-  def strong_components(graph) do
+  def strong_components(graph, component_handler \\ &Function.identity/1) do
     graph
     |> Dfs.run()
     |> Dfs.order(:out, :desc)
@@ -54,7 +54,7 @@ defmodule BitGraph.Algorithms do
       component = state[:acc]
 
       {Map.put(state, :acc, nil),
-        component && [component | components_acc] || components_acc}
+        component && [component_handler.(component) | components_acc] || components_acc}
     end)
     |> elem(1)
   end

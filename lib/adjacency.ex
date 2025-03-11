@@ -2,11 +2,10 @@ defmodule BitGraph.Adjacency do
 
   def init_adjacency_table(max_vertices \\ 1024) do
     bit_vector = allocate(max_vertices)
-    table_dimension = :math.sqrt(size(bit_vector)) |> ceil()
 
     %{
       bit_vector: bit_vector,
-      table_dimension: table_dimension
+      table_dimension: max_vertices
     }
   end
 
