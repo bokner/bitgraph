@@ -39,8 +39,12 @@ defmodule BitGraph.Algorithms do
       |> Map.values()
   end
 
-  ## Kozaraju's
   def strong_components(graph, component_handler \\ fn component, _state -> component end) do
+    kozaraju(graph, component_handler)
+  end
+
+  ## Kozaraju's SCC algorithm
+  def kozaraju(graph, component_handler \\ fn component, _state -> component end) do
     graph
     |> Dfs.run()
     |> Dfs.order(:out, :desc)
