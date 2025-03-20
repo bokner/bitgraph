@@ -25,9 +25,9 @@ defmodule BitGraph.Dfs do
   def run(graph, vertices, opts) when is_list(vertices) do
     initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices), opts)
     Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
-      state_acc = Map.put(state_acc, :root, vertex)
       if vertex_color(state_acc, vertex) == @white_vertex do
-        dfs_impl(graph, vertex, state_acc)
+        ## New component discovered
+        dfs_impl(graph, vertex, Map.put(state_acc, :component_top, vertex))
       else
         state_acc
       end
@@ -37,10 +37,13 @@ defmodule BitGraph.Dfs do
   defp init_dfs(graph, root, opts) do
     num_vertices = BitGraph.num_vertices(graph)
     %{
-      root: root,
+      component_top: root,
       direction: Keyword.get(opts, :direction, :forward),
-      reduce_fun: Keyword.get(opts, :reduce_fun, default_reduce_fun())
-      |> normalize_reduce_fun(),
+      process_edge_fun: Keyword.get(opts, :process_edge_fun, default_process_edge_fun())
+      |> normalize_process_edge_fun(),
+      process_vertex_fun: Keyword.get(opts, :process_vertex_fun, default_process_vertex_fun())
+      |> normalize_process_vertex_fun(),
+
       dag: true,
       timer: :counters.new(1, [:atomics]),
       ## Color (white, black or gray)
@@ -63,18 +66,10 @@ defmodule BitGraph.Dfs do
       time = inc_timer(state)
       Array.put(state[:time_in], vertex, time)
       Array.put(state[:color], vertex, @gray_vertex)
-      {_action, initial_state} = apply_reduce(state, vertex)
+      initial_state = process_vertex(state, vertex)
       Enum.reduce_while(vertex_neighbors(graph, vertex, direction), initial_state, fn
         neighbor, state_acc ->
-          Array.put(state[:parent], neighbor, vertex)
-          case vertex_color(state, neighbor) do
-            @black_vertex -> state_acc
-            @gray_vertex  ->
-              on_loop(neighbor, state_acc)
-            @white_vertex ->
-              dfs_impl(graph, neighbor, state_acc)
-          end
-          |> to_reduce_while_result()
+          process_edge(graph, state_acc, vertex, neighbor)
       end)
       |> tap(fn _ ->
       time = inc_timer(state)
@@ -92,35 +87,88 @@ defmodule BitGraph.Dfs do
     Array.get(state[:color], vertex)
   end
 
-  defp default_reduce_fun() do
-    fn %{acc: _acc} = _state, _vertex, _loop? ->
-      nil
+  defp default_process_vertex_fun() do
+    fn %{acc: acc} = _state, _vertex, _edge_type ->
+      acc
     end
   end
 
-  defp normalize_reduce_fun(reduce_fun) when is_function(reduce_fun, 2) do
-    fn state, vertex, _loop? -> reduce_fun.(state, vertex) end
+  defp default_process_edge_fun() do
+    fn %{acc: acc} = _state, _vertex, _neighbor, _event? ->
+      acc
+    end
   end
 
-  defp normalize_reduce_fun(reduce_fun) when is_function(reduce_fun, 3) do
-    reduce_fun
+  defp process_vertex(%{process_vertex_fun: process_vertex_fun} = state, vertex, opts \\ []) when is_function(process_vertex_fun, 3) do
+    acc = process_vertex_fun.(state, vertex, opts)
+    Map.put(state, :acc, acc)
   end
 
-  defp apply_reduce(%{reduce_fun: reduce_fun} = state, vertex, opts \\ []) when is_function(reduce_fun, 3) do
-    {next_action, acc} = case reduce_fun.(state, vertex, Keyword.get(opts, :loop, false)) do
+  defp process_edge(graph, state, vertex, neighbor) do
+    case vertex_color(state, neighbor) do
+      @black_vertex ->
+        ## (vertex, neighbor) is either a cross edge or forward edge
+        process_edge_impl(state, vertex, neighbor,
+          time_in(state, vertex) > time_in(state, neighbor) && :cross || :forward)
+      @gray_vertex  ->
+        ## (vertex, neighbor) is a back edge
+        process_edge_impl(Map.put(state, :dag, false), vertex, neighbor, :back)
+      @white_vertex ->
+        ## (vertex, neighbor) is a (dfs) tree edge)
+        update_parent(state, neighbor, vertex)
+        {next_action, state} = process_edge_impl(state, vertex, neighbor, :tree)
+        {next_action, dfs_impl(graph, neighbor, state)}
+    end
+
+  end
+
+  defp update_parent(%{parent: parent_ref} = _state, child, parent) do
+    Array.put(parent_ref, child, parent)
+  end
+
+
+  ## Function for processing a vertex could be 2-arity (no options) or 3-arity
+  defp normalize_process_vertex_fun(process_vertex_fun) when is_function(process_vertex_fun, 2) do
+    fn state, vertex, _opts -> process_vertex_fun.(state, vertex) end
+  end
+
+  defp normalize_process_vertex_fun(process_vertex_fun) when is_function(process_vertex_fun, 3) do
+    process_vertex_fun
+  end
+
+  defp normalize_process_vertex_fun(nil), do: nil
+
+  ## Function for processing an edge could be 3-arity (ignoring edge type) or 4-arity
+
+  defp normalize_process_edge_fun(process_edge_fun) when is_function(process_edge_fun, 3) do
+    fn state, prev_vertex, current_vertex, _edge_type -> process_edge_fun.(state, prev_vertex, current_vertex) end
+  end
+
+  defp normalize_process_edge_fun(process_edge_fun) when is_function(process_edge_fun, 4) do
+    process_edge_fun
+  end
+
+  defp normalize_process_edge_fun(nil), do: nil
+
+  defp process_edge_impl(%{process_edge_fun: process_edge_fun} = state, start_vertex, end_vertex, edge_type) when is_function(process_edge_fun, 4) do
+    {next_action, acc} = case process_edge_fun.(state, start_vertex, end_vertex, {:edge, edge_type}) do
       {:next, acc} -> {:next, acc}
       {:stop, acc} -> {:stop, acc}
       acc -> {:next, acc}
     end
-    {next_action, Map.put(state, :acc, acc)}
+    {to_reduce_while_result(next_action), Map.put(state, :acc, acc)}
   end
 
-  defp to_reduce_while_result(result) do
-    case result do
-      {:next, acc} -> {:cont, acc}
-      {:stop, acc} -> {:halt, acc}
-      acc -> {:cont, acc}
-    end
+  defp to_reduce_while_result(:next) do
+    :cont
+  end
+
+  defp to_reduce_while_result(:stop) do
+    :halt
+  end
+
+  defp to_reduce_while_result(_) do
+    :cont
   end
 
   defp vertex_neighbors(graph, vertex, :forward) do
@@ -140,12 +188,6 @@ defmodule BitGraph.Dfs do
     state.dag
   end
 
-  ## The vertex has closed the loop
-  defp on_loop(vertex, state) do
-    Map.put(state, :dag, false)
-    |> apply_reduce(vertex, loop: true)
-  end
-
   def order(state, :in, order) when order in [:desc, :asc] do
     order_impl(state[:time_in], order)
   end
@@ -161,4 +203,25 @@ defmodule BitGraph.Dfs do
     |> Enum.sort(order)
     |> Enum.map(fn {_time_out, vertex_idx} -> vertex_idx end)
   end
+
+  def parents(%{parent: parents_ref} = _dfs_state) do
+    Array.to_list(parents_ref)
+  end
+
+  def time_ins(%{time_in: ref} = _dfs_state) do
+    Array.to_list(ref)
+  end
+
+  def time_in(%{time_in: ref} = _dfs_state, vertex) do
+    Array.get(ref, vertex)
+  end
+
+  def time_outs(%{time_out: ref} = _dfs_state) do
+    Array.to_list(ref)
+  end
+
+  def time_out(%{time_out: ref} = _dfs_state, vertex) do
+    Array.get(ref, vertex)
+  end
+
 end

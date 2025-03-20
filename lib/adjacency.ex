@@ -18,10 +18,6 @@ defmodule BitGraph.Adjacency do
     elem(bit_vector, 2)
   end
 
-  def size(adjacency_table) do
-    :bit_vector.size(adjacency_table)
-  end
-
   def get(
         %{
           bit_vector: bit_vector,
@@ -97,8 +93,8 @@ defmodule BitGraph.Adjacency do
     MapSet.new()
   end
 
-  def copy(%{bit_vector: {:bit_vector, _, source_ref} = _bit_vector, table_dimension: dimension} = adjacency, edges \\ nil) do
-      vector_copy = {:bit_vector, _size, target_ref} = allocate(dimension)
+  def copy(%{bit_vector: {:bit_vector, source_ref} = _bit_vector, table_dimension: dimension} = adjacency, edges \\ nil) do
+      vector_copy = {:bit_vector, target_ref} = allocate(dimension)
       Map.put(adjacency, :bit_vector, vector_copy)
       |> tap(fn adjacency ->
       if edges do

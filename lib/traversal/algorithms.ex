@@ -25,21 +25,22 @@ defmodule BitGraph.Algorithms do
   end
 
   def components(graph) do
-    Dfs.run(graph, :all, direction: :both, reduce_fun:
-      fn %{root: root, acc: acc} = _state, v, _loop?  ->
+    Dfs.run(graph, :all, direction: :both, process_vertex_fun:
+      fn %{component_top: root, acc: acc} = _state, v  ->
         case acc do
-          nil -> %{root => MapSet.new([v])}
+          nil -> %{root => MapSet.new([root, v])}
           existing ->
-            Map.update(existing, root, MapSet.new([v]),
+            Map.update(existing, root, MapSet.new([root]),
             fn component -> MapSet.put(component, v) end)
           end
-      end)
+      end
+      )
       |> Map.get(:acc)
       |> Map.values()
   end
 
   ## Kozaraju's
-  def strong_components(graph, component_handler \\ &Function.identity/1) do
+  def strong_components(graph, component_handler \\ fn component, _state -> component end) do
     graph
     |> Dfs.run()
     |> Dfs.order(:out, :desc)
@@ -47,29 +48,27 @@ defmodule BitGraph.Algorithms do
       state = Dfs.run(graph, v,
         direction: :reverse,
         state: state_acc,
-        reduce_fun: fn %{acc: acc} = _state, vertex ->
+        process_vertex_fun: fn %{acc: acc} = _state, vertex ->
           MapSet.put(acc || MapSet.new(), vertex)
         end
       )
       component = state[:acc]
 
       {Map.put(state, :acc, nil),
-        component && [component_handler.(component) | components_acc] || components_acc}
+        component && [component_handler.(component, state) | components_acc] || components_acc}
     end)
     |> elem(1)
   end
 
   def get_cycle(graph, vertex) when is_integer(vertex) do
     if E.in_degree(graph, vertex) > 0 && E.out_degree(graph, vertex) > 0 do
-      Dfs.run(graph, vertex, reduce_fun:
-        fn %{acc: acc} = state, v, loop?  ->
-          if loop? && (v == vertex) do
+      Dfs.run(graph, vertex, process_edge_fun:
+        fn state, vertex, _neighbor, {:edge, :back}  ->
               {:stop,
                 build_cycle(graph, vertex, state[:parent])
               }
-            else
+           %{acc: acc} = _state, _vertex, _neighbor, _event ->
               {:next, acc}
-            end
         end
       )
       |> Map.get(:acc)

@@ -176,4 +176,5 @@ defmodule BitGraphTest.Algorithms do
     assert length(Algorithms.components(single_component)) == 1
   end
 
+
 end

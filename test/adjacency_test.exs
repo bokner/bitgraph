@@ -6,12 +6,11 @@ defmodule BitGraphTest.Adjacency do
     assert Enum.all?(
              Enum.take_random(1..1000, 100),
              fn v_num ->
-               %{table_dimension: dimension, bit_vector: {:bit_vector, size, ref}} =
+               %{table_dimension: dimension, bit_vector: {:bit_vector, ref}} =
                  Adjacency.init_adjacency_table(v_num)
 
                dimension == v_num &&
-                 size == v_num * v_num &&
-                 :atomics.info(ref)[:size] - div(size, 64) <= 1
+                 div((:atomics.info(ref)[:size] - 2) * 64 - v_num * v_num, 64) <= 1
              end
            )
   end
