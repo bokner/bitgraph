@@ -13,8 +13,12 @@ defmodule BitGraph.Array do
   end
 
   def to_list(array) do
-    Enum.map(1..:atomics.info(array)[:size], fn
+    Enum.map(1..size(array), fn
       idx -> :atomics.get(array, idx)
     end)
+  end
+
+  def size(array) do
+    :atomics.info(array)[:size]
   end
 end
