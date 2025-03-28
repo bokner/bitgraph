@@ -66,16 +66,16 @@ defmodule BitGraph.Dfs do
       time = inc_timer(state)
       Array.put(state[:time_in], vertex, time)
       Array.put(state[:color], vertex, @gray_vertex)
-      initial_state = process_vertex(state, vertex)
+      initial_state = process_vertex(state, vertex, :discovered)
       Enum.reduce_while(vertex_neighbors(graph, vertex, direction), initial_state, fn
         neighbor, state_acc ->
           process_edge(graph, state_acc, vertex, neighbor)
       end)
       |> tap(fn _ ->
-      time = inc_timer(state)
-      Array.put(state[:time_out], vertex, time)
+      Array.put(state[:time_out], vertex, inc_timer(state))
       Array.put(state[:color], vertex, @black_vertex)
       end)
+      |> process_vertex(vertex, :processed)
   end
 
   defp inc_timer(%{timer: timer} = _state) do
@@ -99,9 +99,8 @@ defmodule BitGraph.Dfs do
     end
   end
 
-  defp process_vertex(%{process_vertex_fun: process_vertex_fun} = state, vertex, opts \\ []) when is_function(process_vertex_fun, 3) do
-    acc = process_vertex_fun.(state, vertex, opts)
-    Map.put(state, :acc, acc)
+  defp process_vertex(%{process_vertex_fun: process_vertex_fun} = state, vertex, event) when is_function(process_vertex_fun, 3) do
+    Map.put(state, :acc, process_vertex_fun.(state, vertex, event))
   end
 
   defp process_edge(graph, state, vertex, neighbor) do
@@ -206,6 +205,10 @@ defmodule BitGraph.Dfs do
 
   def parents(%{parent: parents_ref} = _dfs_state) do
     Array.to_list(parents_ref)
+  end
+
+  def parent(%{parent: parents_ref} = _dfs_state, vertex) do
+    Array.get(parents_ref, vertex)
   end
 
   def time_ins(%{time_in: ref} = _dfs_state) do
