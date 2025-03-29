@@ -43,7 +43,11 @@ defmodule BitGraph.Dfs do
       |> normalize_process_edge_fun(),
       process_vertex_fun: Keyword.get(opts, :process_vertex_fun, default_process_vertex_fun())
       |> normalize_process_vertex_fun(),
-
+      ## Processing order for 'tree' edge:
+      ## :preorder - before DFS call
+      ## :postorder - after DFS call
+      ## :both - before and after DFS call
+      edge_process_order: Keyword.get(opts, :edge_process_order, :preorder),
       dag: true,
       timer: :counters.new(1, [:atomics]),
       ## Color (white, black or gray)
@@ -103,7 +107,7 @@ defmodule BitGraph.Dfs do
     Map.put(state, :acc, process_vertex_fun.(state, vertex, event))
   end
 
-  defp process_edge(graph, state, vertex, neighbor) do
+  defp process_edge(graph, %{edge_process_order: process_order} = state, vertex, neighbor) do
     case vertex_color(state, neighbor) do
       @black_vertex ->
         ## (vertex, neighbor) is either a cross edge or forward edge
@@ -115,8 +119,7 @@ defmodule BitGraph.Dfs do
       @white_vertex ->
         ## (vertex, neighbor) is a (dfs) tree edge)
         update_parent(state, neighbor, vertex)
-        {next_action, state} = process_edge_impl(state, vertex, neighbor, :tree)
-        {next_action, dfs_impl(graph, neighbor, state)}
+        process_tree_edge(graph, state, vertex, neighbor, process_order)
     end
 
   end
@@ -157,6 +160,31 @@ defmodule BitGraph.Dfs do
     end
     {to_reduce_while_result(next_action), Map.put(state, :acc, acc)}
   end
+
+  defp process_tree_edge(graph, state, start_vertex, end_vertex, :preorder) do
+    process_edge_impl(state, start_vertex, end_vertex, :tree)
+    |> then(fn {:halt, state} ->
+        {:halt, state}
+      {:cont, state} ->
+        {:cont, dfs_impl(graph, end_vertex, state)}
+    end)
+  end
+
+  defp process_tree_edge(graph, state, start_vertex, end_vertex, :both) do
+    process_edge_impl(state, start_vertex, end_vertex, :tree)
+    |> then(fn {:halt, state} ->
+      {:halt, state}
+    {:cont, state} ->
+      dfs_impl(graph, end_vertex, state)
+      |> process_edge_impl(start_vertex, end_vertex, :tree)
+    end)
+  end
+
+  defp process_tree_edge(graph,  state, start_vertex, end_vertex, :postorder) do
+    dfs_impl(graph, end_vertex, state)
+    |> process_edge_impl(start_vertex, end_vertex, :tree)
+  end
+
 
   defp to_reduce_while_result(:next) do
     :cont
