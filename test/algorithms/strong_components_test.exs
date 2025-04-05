@@ -8,7 +8,19 @@ defmodule BitGraphTest.Algorithms.SCC do
 
 
   test "Single SCC" do
-    
+    edges =
+    [
+      {1, 2}, {1, 3}, {1, 4},
+      {2, 5}, {2, 6},
+      {3, 2}, {3, 6},
+      {4, 1}, {4, 7},
+      {5, 1},
+      {6, 5},
+      {7, 3}, {7, 6}
+    ]
+    graph = BitGraph.new() |> BitGraph.add_edges(edges)
+    assert hd(SCC.kozaraju(graph)) == MapSet.new(1..7)
+    assert hd(SCC.tarjan(graph)) == MapSet.new(1..7)
   end
 
   test "SCC examples with multiple components" do
