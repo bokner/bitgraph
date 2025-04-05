@@ -22,84 +22,131 @@ defmodule BitGraph.Algorithms.SCC do
     |> elem(1)
   end
 
-  def tarjan_scc(graph, component_handler \\ fn component, _state -> component end) do
+  @doc """
+
+    Tarjan SCC
+
+  i – a counter used to assign sequential numbers to the vertices
+  num[] – an array of integers holding the vertice numbers, num[v] is the number assigned to v
+  lowest[] – an array of integers holding the minimum reachable vertex numbers, lowest[v] is the minimum number of a vertex reachable from v
+  s – a stack of vertices used to keep the working set of vertices. s holds all the vertices reachable from the starting vertex. When the algorithm finds an SCC, it will unwind the stack until it gets all the vertices of that SCC
+
+  // GLOBAL VARIABLES
+  //    num <- global array of size V initialized to -1
+  //    lowest <- global array of size V initialized to -1
+  //    s <- global empty stack
+  //    i <- 0
+
+  algorithm DFS(G, v):
+      // INPUT
+      //    G = the graph
+      //    v = the current vertex
+      // OUTPUT
+      //    Vertices reachable from v are processed, their SCCs are reported
+
+      num[v] <- i
+      lowest[v] <- num[v]
+      i <- i + 1
+      visited[v] <- true
+      s.push(v)
+
+      for u in G.neighbours[v]:
+          if visited[u] = false:
+              DFS(G, u)
+              lowest[v] <- min(lowest[v], lowest[u])
+          else if processed[u] = false:
+              lowest[v] <- min(lowest[v], num[u])
+
+      processed[v] <- true
+
+      if lowest[v] = num[v]:
+          scc <- an empty set
+          sccVertex <- s.pop()
+
+          while sccVertex != v:
+              scc.add(sccVertex)
+              sccVertex <- s.pop()
+
+          scc.add(sccVertex)
+
+          Process the found scc in the desired way
+
+      return
+  """
+
+  def tarjan(graph, component_handler \\ fn component, _state -> component end) do
     graph
     |> Dfs.run(:all,
       process_vertex_fun:
         fn state, v, event ->
-          tarjan_vertex(state, v, event, num_vertices: BitGraph.num_vertices(graph))
+          tarjan_vertex(state, v, event, component_handler: component_handler, num_vertices: BitGraph.num_vertices(graph))
         end,
-      process_edge_fun: &tarjan_edge/4
+      process_edge_fun: &tarjan_edge/4,
+      edge_process_order: :postorder
     )
+    |> get_in([:acc, :sccs])
   end
 
   defp initialize_tarjan(opts) do
     num_vertices = Keyword.get(opts, :num_vertices)
-    %{stack: Stack.new(num_vertices),
-      components_found: 0,
-      low:
-        Array.new(num_vertices)
-        |> tap(fn ref ->
-          for i <- 1..num_vertices do
-            Array.put(ref, i, i)
-          end
-        end),
-      scc: Array.new(num_vertices)
+    %{
+      stack: Stack.new(num_vertices),
+      i: :counters.new(1, [:atomics]),
+      num: Array.new(num_vertices),
+      lowest: Array.new(num_vertices),
+      sccs: []
     }
   end
 
-  defp tarjan_vertex(%{acc: acc} = state, vertex, :discovered, opts) do
-    #IO.inspect({:discovered, vertex}, label: :tarjan)
+  defp tarjan_vertex(%{acc: acc} = _state, vertex, :discovered, opts) do
     (acc && acc || initialize_tarjan(opts))
-    |> tap(fn %{stack: stack} = _acc ->
+    |> tap(fn %{stack: stack, i: vertex_num, lowest: lowest, num: num} = _acc ->
+      :counters.add(vertex_num, 1, 1)
       Stack.push(stack, vertex)
+      last_vertex_num = :counters.get(vertex_num, 1)
+      Array.put(num, vertex, last_vertex_num)
+      Array.put(lowest, vertex, last_vertex_num)
     end)
   end
 
-  defp tarjan_vertex(%{acc: %{low: low} = _acc} = state, vertex, :processed, _opts) do
-    IO.inspect({:processed, vertex}, label: :tarjan)
-    if (Array.get(low, vertex) == vertex) do
-      tarjan_pop_component(state, vertex)
+  defp tarjan_vertex(%{acc: %{sccs: sccs, lowest: lowest, num: num} = acc} = state, vertex, :processed, opts) do
+    if (Array.get(lowest, vertex) == Array.get(num, vertex)) do
+      new_component = tarjan_pop_component(state, vertex)
+      Map.put(acc, :sccs, [opts[:component_handler].(new_component, state) | sccs])
+    else
+      state[:acc]
     end
+  end
 
-    low_vertex = Array.get(low, vertex)
-    low_vertex_parent = Dfs.parent(state, low_vertex)
-    if Dfs.time_in(state, vertex) > Dfs.time_in(state, low_vertex) do
-      Array.put(low, low_vertex_parent, low_vertex)
-    end
+  defp tarjan_edge(%{acc: %{lowest: lowest} = _acc} = state, from, to, :tree) do
+    #lowest[from] <- min(lowest[from], lowest[to])
+    Array.put(lowest, from,
+      min(Array.get(lowest, from), Array.get(lowest, to))
+    )
 
     state[:acc]
   end
 
-  defp tarjan_edge(%{acc: %{scc: scc} = _acc} = state, from, to, :cross) do
-    IO.inspect({from, to, :cross}, label: :tarjan)
-    if Array.get(scc, from) == 0 do
-      tarjan_update_low(state, from, to)
-    end
+  defp tarjan_edge(%{acc: %{lowest: lowest, num: num} = _acc} = state, from, to, :back) do
+    #lowest[v] <- min(lowest[v], num[u])
+    Array.put(lowest, from,
+      min(Array.get(lowest, from), Array.get(num, to))
+    )
 
     state[:acc]
   end
 
-  defp tarjan_edge(state, from, to, :back) do
-    IO.inspect({from, to, :back}, label: :tarjan)
-    tarjan_update_low(state, from, to)
+  defp tarjan_edge(state, _from, _to, _event) do
     state[:acc]
   end
 
-  defp tarjan_edge(state, from, to, event) do
-    IO.inspect({from, to, event}, label: :tarjan)
-    state[:acc]
-  end
-
-  defp tarjan_update_low(%{acc: %{low: low} = _acc} = state, from, to) do
-    if Dfs.time_in(state, to) < Dfs.time_in(state, Array.get(low, from)) do
-      Array.put(low, from, to)
-    end
-  end
-
-  defp tarjan_pop_component(%{acc: %{stack: stack} = _acc} = state, vertex) do
-    IO.inspect({"pop component", vertex}, label: :pop_component)
-    IO.inspect(Array.to_list(stack), label: :stack)
+  defp tarjan_pop_component(%{acc: %{stack: stack} = _acc} = _state, vertex) do
+    scc = MapSet.new()
+    Enum.reduce_while(1..Stack.size(stack), scc, fn _, acc ->
+      el = Stack.pop(stack)
+      acc = MapSet.put(acc, el)
+      (el == vertex) && {:halt, acc} || {:cont, acc}
+    end)
   end
 
 end

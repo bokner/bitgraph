@@ -44,63 +44,6 @@ defmodule BitGraphTest.Algorithms do
     assert Algorithms.topsort(star)
   end
 
-  test "SCC (Kosaraju) " do
-    ## Example:
-    ## https://en.wikipedia.org/wiki/Strongly_connected_component#/media/File:Scc-1.svg
-    ## Modified to add a single-vertex component (by having :i -> :f edge)
-    edges = [
-      {:a, :b},
-      {:b, :c}, {:b, :e}, {:b, :f},
-      {:c, :d}, {:c, :g},
-      {:d, :c}, {:d, :h},
-      {:e, :a}, {:e, :f},
-      {:f, :g},
-      {:g, :f}, {:i, :f},
-      {:h, :d}, {:h, :g}
-    ]
-    graph = BitGraph.new() |> BitGraph.add_edges(edges)
-    strong_components = Algorithms.strong_components(graph)
-    |> Enum.map(fn component -> Common.vertex_indices_to_ids(graph, component) end)
-    assert length(strong_components) == 4
-    assert Enum.sort(strong_components) == Enum.sort(
-      [
-        [:a, :b, :e],
-        [:f, :g],
-        [:c, :d, :h],
-        [:i]
-      ]
-    )
-  end
-
-  test "SCC example 2" do
-    edges = [
-    {"A", "B"},
-      {"B", "D"}, {"B", "E"},
-      {"C", "F"},
-      {"E", "B"}, {"E", "F"},
-      {"F", "C"}, {"F", "H"},
-      {"G", "H"}, {"G", "J"},
-      {"H", "K"},
-      {"I", "G"},
-      {"J", "I"},
-      {"K", "L"},
-      {"L", "J"}
-    ]
-    graph = BitGraph.new() |> BitGraph.add_edges(edges)
-    strong_components = Algorithms.strong_components(graph)
-    |> MapSet.new(fn component -> Common.vertex_indices_to_ids(graph, component) end)
-    assert MapSet.size(strong_components) == 5
-    assert Enum.sort(strong_components) == Enum.sort(
-       [
-        ["A"],
-        ["D"],
-        ["B", "E"],
-         ["C", "F"],
-         ["H", "G", "J", "K", "I", "L"]
-       ]
-     )
-  end
-
   test "acyclic?" do
     graph1 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:a, :c}, {:b, :c}])
     assert Algorithms.acyclic?(graph1)

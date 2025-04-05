@@ -38,15 +38,25 @@ defmodule BitGraph.Algorithms do
       |> Map.values()
   end
 
-  def strong_components(graph, component_handler \\ fn component, _state -> component end) do
-    SCC.kozaraju(graph, component_handler)
+  def strong_components(graph, opts \\ []) do
+    opts = Keyword.merge(
+    [
+      component_handler: fn component, _state -> component end,
+      algorithm: :kozaraju
+    ], opts)
+
+    case opts[:algorithm] do
+      :tarjan -> SCC.tarjan(graph, opts[:component_handler])
+      :kozaraju -> SCC.kozaraju(graph, opts[:component_handler])
+      unknown -> throw({:error, {:scc_unknown_algo, unknown}})
+    end
   end
 
 
   def get_cycle(graph, vertex) when is_integer(vertex) do
     if E.in_degree(graph, vertex) > 0 && E.out_degree(graph, vertex) > 0 do
       Dfs.run(graph, vertex, process_edge_fun:
-        fn state, vertex, _neighbor, {:edge, :back}  ->
+        fn state, vertex, _neighbor, :back  ->
               {:stop,
                 build_cycle(graph, vertex, state[:parent])
               }

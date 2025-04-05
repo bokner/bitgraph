@@ -172,7 +172,7 @@ defmodule BitGraph.Dfs do
        )
        when is_function(process_edge_fun, 4) do
     {next_action, acc} =
-      case process_edge_fun.(state, start_vertex, end_vertex, {:edge, edge_type}) do
+      case process_edge_fun.(state, start_vertex, end_vertex, edge_type) do
         {:next, acc} -> {:next, acc}
         {:stop, acc} -> {:stop, acc}
         acc -> {:next, acc}

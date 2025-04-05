@@ -14,7 +14,7 @@ defmodule BitGraphTest.Dfs do
 
     type_map =
     Dfs.run(graph, :all, process_edge_fun:
-      fn %{acc: acc} = _state, from, to, {:edge, edge_type} ->
+      fn %{acc: acc} = _state, from, to, edge_type ->
         [{edge_type, {from, to}} | acc || []]
       end
     )
