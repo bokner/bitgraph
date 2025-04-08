@@ -20,7 +20,7 @@ defmodule BitGraphTest.Algorithms.SCC do
       {7, 4}, {7, 5}
     ]
     graph = BitGraph.new() |> BitGraph.add_vertices(vertices) |> BitGraph.add_edges(edges)
-    #assert hd(SCC.kozaraju(graph)) == MapSet.new(1..7)
+    assert hd(SCC.kozaraju(graph)) == MapSet.new(1..7)
     assert hd(SCC.tarjan(graph)) == MapSet.new(1..7)
   end
 

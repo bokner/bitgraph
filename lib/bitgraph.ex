@@ -1,6 +1,6 @@
 defmodule BitGraph do
   @moduledoc """
-  Documentation for `Bitgraph`.
+  Documentation for `BitGraph`.
   """
 
   @doc """
