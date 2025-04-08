@@ -1,6 +1,6 @@
 defmodule BitGraph.Array do
   def new(size) do
-    :atomics.new(size, signed: :false)
+    :atomics.new(size, signed: :true)
   end
 
   ## Get element by (1-based) index
