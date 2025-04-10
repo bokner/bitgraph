@@ -6,20 +6,18 @@ defmodule BitGraphTest.Algorithms.SCC do
 
   alias BitGraph.Common
 
+  test "Strongly connected graph" do
+    graph = strongly_connected_graph_example()
+    assert Algorithms.strongly_connected?(graph)
+  end
+
+  test "DAG is not a stronly connected graph" do
+    graph = tree_example()
+    refute Algorithms.strongly_connected?(graph)
+  end
 
   test "Single SCC" do
-    vertices = 1..7
-    edges =
-    [
-      {1, 2}, {1, 5}, {1, 6},
-      {2, 3}, {2, 4},
-      {3, 1},
-      {4, 3},
-      {5, 2}, {5, 4},
-      {6, 1}, {6, 7},
-      {7, 4}, {7, 5}
-    ]
-    graph = BitGraph.new() |> BitGraph.add_vertices(vertices) |> BitGraph.add_edges(edges)
+    graph = strongly_connected_graph_example()
     assert hd(SCC.kozaraju(graph)) == MapSet.new(1..7)
     assert hd(SCC.tarjan(graph)) == MapSet.new(1..7)
   end
@@ -41,6 +39,32 @@ defmodule BitGraphTest.Algorithms.SCC do
         assert Enum.sort(normalized_sccs) == Enum.sort(valid_sccs)
         end)
       end)
+  end
+
+  defp strongly_connected_graph_example() do
+    vertices = 1..7
+    edges =
+    [
+      {1, 2}, {1, 5}, {1, 6},
+      {2, 3}, {2, 4},
+      {3, 1},
+      {4, 3},
+      {5, 2}, {5, 4},
+      {6, 1}, {6, 7},
+      {7, 4}, {7, 5}
+    ]
+    BitGraph.new() |> BitGraph.add_vertices(vertices) |> BitGraph.add_edges(edges)
+  end
+
+  defp tree_example() do
+    edges = [
+      {1, 2}, {1, 3}, {1, 4},
+      {2, 5}, {2, 6}, {2, 7},
+      {3, 8}, {3, 9},
+      {4, 10}, {4, 11},
+      {5, 12}
+    ]
+    BitGraph.new() |> BitGraph.add_edges(edges)
   end
 
   defp graph_example_1() do

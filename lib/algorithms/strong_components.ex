@@ -2,9 +2,14 @@ defmodule BitGraph.Algorithms.SCC do
   alias BitGraph.{Dfs, Array, Stack}
 
   ## Kozaraju's SCC algorithm
-  def kozaraju(graph, component_handler \\ fn component, _state -> component end) do
+  def kozaraju(graph,
+    component_handler \\ fn component, _state -> component end,
+    precheck \\ fn state -> state end,
+    first_run_opts \\ []
+    ) do
     graph
-    |> Dfs.run()
+    |> Dfs.run(first_run_opts)
+    |> then(fn state -> precheck.(state) end)
     |> Dfs.order(:out, :desc)
     |> Enum.reduce({nil, []}, fn v, {state_acc, components_acc} ->
       state =
@@ -29,12 +34,15 @@ defmodule BitGraph.Algorithms.SCC do
     Roughly follows https://blog.heycoach.in/tarjans-algorithm-in-graph-theory/
   """
 
-  def tarjan(graph, component_handler \\ fn component, _state -> component end) do
+  def tarjan(graph, component_handler \\ fn component, _state -> component end,
+    no_loop_handler \\ fn state -> state[:acc] end
+  ) do
     graph
-    |> Dfs.run(:all,
+    |> Dfs.run(
       process_vertex_fun: fn state, v, event ->
         tarjan_vertex(state, v, event,
           component_handler: component_handler,
+          no_loop_handler: no_loop_handler,
           num_vertices: BitGraph.num_vertices(graph)
         )
       end,

@@ -23,6 +23,26 @@ defmodule BitGraph.Algorithms do
     end)
   end
 
+  def strongly_connected?(graph, _opts \\ []) do
+    try do
+      SCC.kozaraju(graph,
+      fn component, _dfs_state ->
+        throw({:single_scc?, component && (MapSet.size(component) == BitGraph.num_vertices(graph))})
+
+        end,
+      fn state -> state[:dag] && throw({:error, :dag}) || state end,
+
+      [process_vertex_fun: fn(state, vertex, event) ->
+        event == :processed && state.dag && throw({:error, :dag, vertex}) || state[:acc] end]
+      )
+    catch
+      {:single_scc?, res} -> res
+      {:error, :dag} -> false
+      {:error, :dag, _vertex} -> false
+    end
+
+  end
+
   def components(graph) do
     Dfs.run(graph, :all, direction: :both, process_vertex_fun:
       fn %{component_top: root, acc: acc} = _state, v  ->

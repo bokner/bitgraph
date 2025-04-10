@@ -12,7 +12,9 @@ defmodule BitGraph.Dfs do
   @gray_vertex 1
   @black_vertex 2
 
-  def run(graph, vertices \\ :all, opts \\ [])
+  def run(graph, opts \\ []) do
+    run(graph, :all, opts)
+  end
 
   def run(graph, :all, opts) do
     run(graph, BitGraph.vertex_indices(graph), opts)
