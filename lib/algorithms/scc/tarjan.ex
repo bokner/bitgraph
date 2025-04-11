@@ -69,16 +69,22 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
          :processed,
          opts
        ) do
+    ## Pre-process based on whether the loop occurs after
+    ## processing this vertex.
+    ## Used for cases where we want to shortcut processing
+    ## (for instance, figure if a graaph is strongly connected)
+    acc = case opts[:on_dag_handler] do
+      nil -> acc
+      on_dag_handler when state.dag ->
+        on_dag_handler.(vertex)
+      _ -> acc
+    end
+
     if Array.get(lowest, vertex) == Dfs.time_in(state, vertex) do
       new_component = tarjan_pop_component(state, vertex)
       Map.put(acc, :sccs, [opts[:component_handler].(new_component, state) | sccs])
     else
-      case opts[:on_dag_handler] do
-        nil -> acc
-        on_dag_handler when state.dag ->
-          on_dag_handler.(vertex)
-        _ -> acc
-      end
+      acc
     end
   end
 
