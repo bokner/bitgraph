@@ -1,55 +1,46 @@
-defmodule BitGraph.Algorithms.SCC do
+defmodule BitGraph.Algorithms.SCC.Tarjan do
+
   alias BitGraph.{Dfs, Array, Stack}
-
-  ## Kozaraju's SCC algorithm
-  def kozaraju(graph,
-    component_handler \\ fn component, _state -> component end,
-    precheck \\ fn state -> state end,
-    first_run_opts \\ []
-    ) do
-    graph
-    |> Dfs.run(first_run_opts)
-    |> then(fn state -> precheck.(state) end)
-    |> Dfs.order(:out, :desc)
-    |> Enum.reduce({nil, []}, fn v, {state_acc, components_acc} ->
-      state =
-        Dfs.run(graph, v,
-          direction: :reverse,
-          state: state_acc,
-          process_vertex_fun: fn %{acc: acc} = _state, vertex ->
-            MapSet.put(acc || MapSet.new(), vertex)
-          end
-        )
-
-      component = state[:acc]
-
-      {Map.put(state, :acc, nil),
-       (component && [component_handler.(component, state) | components_acc]) || components_acc}
-    end)
-    |> elem(1)
-  end
-
   @doc """
     Tarjan algo for SCC.
     Roughly follows https://blog.heycoach.in/tarjans-algorithm-in-graph-theory/
   """
 
-  def tarjan(graph, component_handler \\ fn component, _state -> component end,
-    no_loop_handler \\ fn state -> state[:acc] end
-  ) do
+  def run(graph,
+    component_handler \\ fn component, _state -> component end,
+    opts \\ []
+    ) when is_function(component_handler, 2) do
     graph
     |> Dfs.run(
       process_vertex_fun: fn state, v, event ->
         tarjan_vertex(state, v, event,
           component_handler: component_handler,
-          no_loop_handler: no_loop_handler,
-          num_vertices: BitGraph.num_vertices(graph)
+          num_vertices: BitGraph.num_vertices(graph),
+          on_dag_handler: opts[:on_dag_handler]
         )
       end,
       process_edge_fun: &tarjan_edge/4,
       edge_process_order: :postorder
     )
     |> get_in([:acc, :sccs])
+  end
+
+  def strongly_connected?(graph) do
+    try do
+      run(graph,
+      fn component, _dfs_state ->
+        throw({:single_scc?, component && (MapSet.size(component) == BitGraph.num_vertices(graph))})
+
+        end,
+
+        on_dag_handler: fn vertex ->
+          throw({:error, :dag, vertex})
+        end)
+    catch
+      {:single_scc?, res} -> res
+      {:error, :dag, _vertex} -> false
+    end
+
   end
 
   defp initialize_tarjan(opts) do
@@ -82,7 +73,12 @@ defmodule BitGraph.Algorithms.SCC do
       new_component = tarjan_pop_component(state, vertex)
       Map.put(acc, :sccs, [opts[:component_handler].(new_component, state) | sccs])
     else
-      state[:acc]
+      case opts[:on_dag_handler] do
+        nil -> acc
+        on_dag_handler when state.dag ->
+          on_dag_handler.(vertex)
+        _ -> acc
+      end
     end
   end
 
@@ -122,4 +118,5 @@ defmodule BitGraph.Algorithms.SCC do
       (el == vertex && {:halt, acc}) || {:cont, acc}
     end)
   end
+
 end

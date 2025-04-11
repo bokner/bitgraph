@@ -8,18 +8,20 @@ defmodule BitGraphTest.Algorithms.SCC do
 
   test "Strongly connected graph" do
     graph = strongly_connected_graph_example()
-    assert Algorithms.strongly_connected?(graph)
+    assert SCC.Tarjan.strongly_connected?(graph)
+    assert SCC.Kozaraju.strongly_connected?(graph)
   end
 
   test "DAG is not a stronly connected graph" do
     graph = tree_example()
-    refute Algorithms.strongly_connected?(graph)
+    refute SCC.Tarjan.strongly_connected?(graph)
+    refute SCC.Kozaraju.strongly_connected?(graph)
   end
 
   test "Single SCC" do
     graph = strongly_connected_graph_example()
-    assert hd(SCC.kozaraju(graph)) == MapSet.new(1..7)
-    assert hd(SCC.tarjan(graph)) == MapSet.new(1..7)
+    assert hd(SCC.Kozaraju.run(graph)) == MapSet.new(1..7)
+    assert hd(SCC.Tarjan.run(graph)) == MapSet.new(1..7)
   end
 
   test "SCC examples with multiple components" do
@@ -28,8 +30,8 @@ defmodule BitGraphTest.Algorithms.SCC do
       fn {graph, valid_sccs} ->
         Enum.each([
           ## Test direct call
-          SCC.kozaraju(graph),
-          SCC.tarjan(graph),
+          SCC.Kozaraju.run(graph),
+          SCC.Tarjan.run(graph),
           ## Test API
           Algorithms.strong_components(graph, algorithm: :kozaraju),
           Algorithms.strong_components(graph, algorithm: :tarjan)

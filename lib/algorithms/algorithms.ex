@@ -23,24 +23,15 @@ defmodule BitGraph.Algorithms do
     end)
   end
 
-  def strongly_connected?(graph, _opts \\ []) do
-    try do
-      SCC.kozaraju(graph,
-      fn component, _dfs_state ->
-        throw({:single_scc?, component && (MapSet.size(component) == BitGraph.num_vertices(graph))})
-
-        end,
-      fn state -> state[:dag] && throw({:error, :dag}) || state end,
-
-      [process_vertex_fun: fn(state, vertex, event) ->
-        event == :processed && state.dag && throw({:error, :dag, vertex}) || state[:acc] end]
-      )
-    catch
-      {:single_scc?, res} -> res
-      {:error, :dag} -> false
-      {:error, :dag, _vertex} -> false
+  def strongly_connected?(graph, opts \\ []) do
+    algo = Keyword.get(opts, :algorithm) || :tarjan
+    case algo do
+      :kozaraju ->
+        SCC.Kozaraju.strongly_connected?(graph)
+      :tarjan ->
+        SCC.Tarjan.strongly_connected?(graph)
+      other -> throw({:scc, :unknown_algo, other})
     end
-
   end
 
   def components(graph) do
@@ -66,8 +57,8 @@ defmodule BitGraph.Algorithms do
     ], opts)
 
     case opts[:algorithm] do
-      :tarjan -> SCC.tarjan(graph, opts[:component_handler])
-      :kozaraju -> SCC.kozaraju(graph, opts[:component_handler])
+      :tarjan -> SCC.Tarjan.run(graph, opts[:component_handler])
+      :kozaraju -> SCC.Kozaraju.run(graph, opts[:component_handler])
       unknown -> throw({:error, {:scc_unknown_algo, unknown}})
     end
   end
