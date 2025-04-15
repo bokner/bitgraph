@@ -23,17 +23,9 @@ defmodule BitGraph do
 
   @doc """
   Creates a subgraph on `subgraph_vertices`
-  `shared?` signifies whether adjacency matrix is shared with parent graph.
-  That is, `shared? = true` implies that all destructive operations on parent graph will
-  affect a subgraph, and vice versa.
   """
-  def subgraph(graph, subgraph_vertices, shared? \\ false) do
-    graph = (shared? && graph || copy(graph))
-
-    graph
-    |> BitGraph.vertices()
-    |> Enum.reduce(
-      Map.put(graph, :shared?, shared?),
+  def subgraph(graph, subgraph_vertices) do
+    Enum.reduce(BitGraph.vertices(graph), copy(graph),
       fn existing_vertex, acc ->
         if existing_vertex not in subgraph_vertices do
           BitGraph.delete_vertex(acc, existing_vertex)
@@ -42,10 +34,6 @@ defmodule BitGraph do
         end
       end
     )
-  end
-
-  def shared?(graph) do
-    graph[:shared?]
   end
 
   def default_opts() do
@@ -205,20 +193,11 @@ defmodule BitGraph do
   end
 
   defp neighbors_impl(graph, vertex_index, :out_edges) do
-    (if shared?(graph) do
-      V.get_vertex(graph, vertex_index) && E.out_neighbors(graph, vertex_index)
-    else
-      E.out_neighbors(graph, vertex_index)
-    end) || MapSet.new()
+    E.out_neighbors(graph, vertex_index)
   end
 
   defp neighbors_impl(graph, vertex_index, :in_edges) do
-    (if shared?(graph) do
-      V.get_vertex(graph, vertex_index) && E.in_neighbors(graph, vertex_index)
-    else
-      E.in_neighbors(graph, vertex_index)
-    end) || MapSet.new()
-
+    E.in_neighbors(graph, vertex_index)
   end
 
   defp edge_vertices(v1, v2, :out_edges) do

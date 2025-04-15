@@ -51,7 +51,7 @@ defmodule BitGraph.E do
   end
 
   def delete_edge(%{adjacency: adjacency, edges: edges} = graph, from, to) when is_integer(from) and is_integer(to) do
-    BitGraph.shared?(graph) || Adjacency.clear(adjacency, from, to)
+    Adjacency.clear(adjacency, from, to)
     edges
     |> Map.delete({from, to})
     |> then(fn updated_edges -> Map.put(graph, :edges, updated_edges) end)

@@ -135,7 +135,7 @@ defmodule BitGraphTest do
 
   end
 
-  test "subgraph (detached)" do
+  test "subgraph" do
     graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
       [
         {:a, :b}, {:a, :c}, {:a, :d},
@@ -143,44 +143,21 @@ defmodule BitGraphTest do
         {:c, :d}
       ])
 
-     ## "Detached" subgraph (no sharing with parent)
-     detached_subgraph = BitGraph.subgraph(graph, [:a, :b, :c])
-     assert_subgraph(detached_subgraph)
+     subgraph = BitGraph.subgraph(graph, [:a, :b, :c])
+     assert_subgraph(subgraph)
      ## The parent graph is not affected
      assert BitGraph.num_vertices(graph) == 4
      assert BitGraph.num_edges(graph) == 6
      ## Removing vertex from parent graph does not affect a detached subgraph
      graph2 = BitGraph.delete_vertex(graph, :a)
      assert BitGraph.num_vertices(graph2) == 3
-     assert_subgraph(detached_subgraph)
-     ## Removing vertex from detached subgraph does not affect the parent graph
-     _detached_subgraph2 = BitGraph.delete_vertex(detached_subgraph, :a)
+     assert_subgraph(subgraph)
+     ## Removing vertex from subgraph does not affect the parent graph
+     _subgraph2 = BitGraph.delete_vertex(subgraph, :a)
      assert BitGraph.num_vertices(graph) == 4
 
   end
 
-  test "subgraph (shared)" do
-    graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
-      [
-        {:a, :b}, {:a, :c}, {:a, :d},
-        {:b, :c}, {:b, :d},
-        {:c, :d}
-      ])
-
-      ## "Shared" subgraph (destructive operations on either parent or subgraph may affect both)
-      shared_subgraph = BitGraph.subgraph(graph, [:a, :b, :c], true)
-      assert_subgraph(shared_subgraph)
-      ## Initially, the parent graph is not affected
-      assert BitGraph.num_vertices(graph) == 4
-      assert BitGraph.num_edges(graph) == 6
-      ## Removing shared vertex from parent graph affects a detached subgraph
-     graph2 = BitGraph.delete_vertex(graph, :a)
-     assert BitGraph.num_edges(graph2) == 3
-     assert BitGraph.degree(shared_subgraph, :a) == 0
-     assert BitGraph.neighbors(shared_subgraph, :b) == MapSet.new([:c])
-     assert BitGraph.neighbors(shared_subgraph, :c) == MapSet.new([:b])
-     #assert BitGraph.out_edges(shared_subgraph, :c) |> map_size() == 1
-  end
 
   defp assert_subgraph(subgraph) do
     assert Enum.sort(BitGraph.vertices(subgraph)) == Enum.sort([:a, :b, :c])
