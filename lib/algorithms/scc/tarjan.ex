@@ -19,7 +19,17 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
           on_dag_handler: opts[:on_dag_handler]
         )
       end,
-      process_edge_fun: &tarjan_edge/4,
+      process_edge_fun: fn state, from, to, edge_type ->
+        tarjan_edge(state, from, to, edge_type)
+        |> then(fn acc ->
+          ## Apply caller-provided function for processing edge
+          case opts[:process_edge_fun] do
+            nil -> acc
+            caller_process_edge_fun ->
+              caller_process_edge_fun.(state, from, to, edge_type)
+            end
+        end)
+      end,
       edge_process_order: :postorder
     )
     |> get_in([:acc, :sccs])
@@ -36,6 +46,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
         on_dag_handler: fn vertex ->
           throw({:error, :dag, vertex})
         end)
+
     catch
       {:single_scc?, res} -> res
       {:error, :dag, _vertex} -> false
