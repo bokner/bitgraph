@@ -21,6 +21,33 @@ defmodule BitGraph do
     Map.put(graph, :adjacency, Adjacency.copy(adjacency, graph.edges))
   end
 
+  @doc """
+  Creates a subgraph on `subgraph_vertices`
+  `shared?` signifies whether adjacency matrix is shared with parent graph.
+  That is, `shared? = true` implies that all destructive operations on parent graph will
+  affect a subgraph, and vice versa.
+  """
+  def subgraph(graph, subgraph_vertices, shared? \\ false) do
+    graph = (shared? && graph || copy(graph))
+
+    graph
+    |> BitGraph.vertices()
+    |> Enum.reduce(
+      Map.put(graph, :shared?, shared?),
+      fn existing_vertex, acc ->
+        if existing_vertex not in subgraph_vertices do
+          BitGraph.delete_vertex(acc, existing_vertex)
+        else
+          acc
+        end
+      end
+    )
+  end
+
+  def shared?(graph) do
+    graph[:shared?]
+  end
+
   def default_opts() do
     [max_vertices: 1024]
   end
@@ -97,10 +124,8 @@ defmodule BitGraph do
     from_index = V.get_vertex_index(graph, from)
     to_index = V.get_vertex_index(graph, to)
     from_index && to_index &&
-    (
     E.delete_edge(graph, from_index, to_index)
-    Map.update(graph, :edges, %{}, fn edges -> Map.delete(edges, {from_index, to_index}) end)
-    ) || graph
+    || graph
   end
 
   def delete_edges(graph, edges) do
@@ -140,12 +165,20 @@ defmodule BitGraph do
     out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to) end)
   end
 
+  def neighbors(graph, vertex) do
+    MapSet.union(out_neighbors(graph, vertex), in_neighbors(graph, vertex))
+  end
+
   def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
     edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out_edges)
   end
 
   def in_degree(graph, vertex) do
     in_neighbors(graph, vertex) |> MapSet.size()
+  end
+
+  def degree(graph, vertex) do
+    in_degree(graph, vertex) + out_degree(graph, vertex)
   end
 
   def out_degree(graph, vertex) do
@@ -156,7 +189,10 @@ defmodule BitGraph do
     neighbor_indices = neighbors_impl(graph, vertex_index, direction)
     Enum.reduce(neighbor_indices, MapSet.new(), fn neighbor_index, acc ->
       {from_vertex, to_vertex} = edge_vertices(vertex_index, neighbor_index, direction)
-      MapSet.put(acc, edge_info_fun.(from_vertex, to_vertex, graph))
+      case edge_info_fun.(from_vertex, to_vertex, graph) do
+        nil -> acc
+        edge_info -> MapSet.put(acc, edge_info)
+      end
     end)
   end
 
@@ -169,11 +205,20 @@ defmodule BitGraph do
   end
 
   defp neighbors_impl(graph, vertex_index, :out_edges) do
-    E.out_neighbors(graph, vertex_index)
+    (if shared?(graph) do
+      V.get_vertex(graph, vertex_index) && E.out_neighbors(graph, vertex_index)
+    else
+      E.out_neighbors(graph, vertex_index)
+    end) || MapSet.new()
   end
 
   defp neighbors_impl(graph, vertex_index, :in_edges) do
-    E.in_neighbors(graph, vertex_index)
+    (if shared?(graph) do
+      V.get_vertex(graph, vertex_index) && E.in_neighbors(graph, vertex_index)
+    else
+      E.in_neighbors(graph, vertex_index)
+    end) || MapSet.new()
+
   end
 
   defp edge_vertices(v1, v2, :out_edges) do
