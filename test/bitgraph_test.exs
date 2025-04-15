@@ -134,4 +134,37 @@ defmodule BitGraphTest do
     end
 
   end
+
+  test "subgraph" do
+    graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
+      [
+        {:a, :b}, {:a, :c}, {:a, :d},
+        {:b, :c}, {:b, :d},
+        {:c, :d}
+      ])
+
+     subgraph = BitGraph.subgraph(graph, [:a, :b, :c])
+     assert_subgraph(subgraph)
+     ## The parent graph is not affected
+     assert BitGraph.num_vertices(graph) == 4
+     assert BitGraph.num_edges(graph) == 6
+     ## Removing vertex from parent graph does not affect a detached subgraph
+     graph2 = BitGraph.delete_vertex(graph, :a)
+     assert BitGraph.num_vertices(graph2) == 3
+     assert_subgraph(subgraph)
+     ## Removing vertex from subgraph does not affect the parent graph
+     _subgraph2 = BitGraph.delete_vertex(subgraph, :a)
+     assert BitGraph.num_vertices(graph) == 4
+
+  end
+
+
+  defp assert_subgraph(subgraph) do
+    assert Enum.sort(BitGraph.vertices(subgraph)) == Enum.sort([:a, :b, :c])
+    assert BitGraph.num_edges(subgraph) == 3
+    assert BitGraph.out_neighbors(subgraph, :a) == MapSet.new([:c, :b])
+    assert BitGraph.out_neighbors(subgraph, :b) == MapSet.new([:c])
+    assert BitGraph.in_neighbors(subgraph, :b) == MapSet.new([:a])
+    assert BitGraph.in_neighbors(subgraph, :c) == MapSet.new([:a, :b])
+  end
 end
