@@ -24,6 +24,21 @@ defmodule BitGraph.Dfs do
     run(graph, [root], opts)
   end
 
+  @doc """
+  Options:
+
+  - `state` - initial state
+  - `direction` - direction of edges connected to current vertex
+     - :forward - out-edges
+     - :reverse - in-edges
+     - :both - all edges
+  - `process_vertex_fun` callback for processing vertex
+  - `process_edge_fun` - callback for processing edges
+  - `edge_process_order` - whether the (dfs tree) edge processing will be made
+        - before (:preorder, default)
+        - after (:postorder)
+        - before and after (:both)
+  """
   def run(graph, vertices, opts) when is_list(vertices) do
     initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices), opts)
 
