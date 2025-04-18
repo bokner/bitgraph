@@ -12,12 +12,12 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     run(graph, MapSet.new(left_partition), opts)
   end
 
-  def run(graph, left_partition, _opts) when is_struct(left_partition, MapSet) do
-    initial_matching = generate_initial_matching(graph, left_partition)
-    Enum.reduce(left_partition, initial_state(graph, left_partition),
+  def run(graph, left_partition, opts) when is_struct(left_partition, MapSet) do
+    Enum.reduce(left_partition, initial_state(graph, left_partition, opts),
       fn lp_vertex, state_acc ->
-        dfs(graph, V.get_vertex_index(graph, lp_vertex), reset_used(state_acc))
-        and increase_matching_count(state_acc)
+        if dfs(graph, V.get_vertex_index(graph, lp_vertex), reset_used(state_acc)) do
+          increase_matching_count(state_acc)
+        end
         state_acc
       end
     )
@@ -32,11 +32,12 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     :counters.add(state.match_count, 1, 1)
   end
 
-  defp initial_state(graph, left_partition) do
+  defp initial_state(graph, left_partition, _opts) do
     %{
       used: Array.new(BitGraph.num_vertices(graph)),
       match: Array.new(BitGraph.num_vertices(graph)),
-      match_count: :counters.new(1, [:atomics])
+      match_count: :counters.new(1, [:atomics]),
+      initial_matching: generate_initial_matching(graph, left_partition)
     }
   end
 
@@ -51,7 +52,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       fn idx, {c, match_acc} = acc ->
         case Array.get(match, idx) do
           value when value == 0 -> {:cont, acc}
-          value when value != 0 ->
+          value ->
             acc = {c + 1, Map.put(match_acc,
               BitGraph.V.get_vertex(graph, value),
               BitGraph.V.get_vertex(graph, idx))}
