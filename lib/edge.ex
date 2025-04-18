@@ -42,6 +42,13 @@ defmodule BitGraph.E do
     Adjacency.column(graph[:adjacency], vertex)
   end
 
+  def neighbors(graph, vertex) when is_integer(vertex) do
+    MapSet.union(
+      in_neighbors(graph, vertex),
+      out_neighbors(graph, vertex)
+    )
+  end
+
   def out_degree(graph, vertex) when is_integer(vertex) do
     out_neighbors(graph, vertex) |> MapSet.size()
   end

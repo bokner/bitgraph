@@ -1,6 +1,6 @@
 defmodule BitGraph.Algorithms do
   alias BitGraph.{Dfs, Array, E}
-  alias BitGraph.Algorithms.SCC
+  alias BitGraph.Algorithms.{SCC, Matching}
 
   def topsort(graph) do
     graph
@@ -78,6 +78,15 @@ defmodule BitGraph.Algorithms do
       |> Map.get(:acc)
     else
       false
+    end
+  end
+
+  def bipartite_matching(graph, left_partition, opts \\ []) do
+    algo = Keyword.get(opts, :algorithm) || :kuhn
+    case algo do
+      :kuhn ->
+        Matching.Kuhn.run(graph, left_partition, opts)
+      other -> throw({:bipartite_matching, :unknown_algo, other})
     end
   end
 
