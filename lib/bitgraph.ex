@@ -47,7 +47,7 @@ defmodule BitGraph do
 
   def add_vertices(graph, vertices) do
     Enum.reduce(vertices, graph, fn
-      {vertex, opts}, acc ->
+      {vertex, opts}, acc when is_list(opts) ->
         add_vertex(acc, vertex, opts)
       vertex, acc ->
         add_vertex(acc, vertex)
