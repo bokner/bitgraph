@@ -86,18 +86,19 @@ defmodule BitGraphTest.Algorithms.Kuhn do
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
 
-      fixed_matching = %{{:L, 1} => {:R, 4}}
+      fixed_matching = %{{:L, 1} => {:R, 5}}
+      #fixed_matching = %{}
       matching = Kuhn.run(bp_graph, left_partition, fixed_matching: fixed_matching)
 
       assert_matching(matching, 6)
 
       ## Fixed matching is respected
-      assert {:R, 4} = Map.get(matching, {:L, 1})
+      assert {:R, 5} = Map.get(matching, {:L, 1})
 
       matching_no_fixed = Kuhn.run(bp_graph, left_partition)
 
       # Matching with nothing fixed is different
-      refute {:R, 4} == Map.get(matching_no_fixed, {:L, 1})
+      refute {:R, 5} == Map.get(matching_no_fixed, {:L, 1})
 
 
     end
