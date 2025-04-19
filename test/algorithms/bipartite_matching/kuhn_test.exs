@@ -66,30 +66,59 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       right_side_neighbors = @three_vertices_instance
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
-      #initial_matching = Kuhn.initial_matching(bp_graph, left_partition)
-      assert_matching(Kuhn.run(bp_graph, left_partition), 3) #, initial_matching), 3)
+      # initial_matching = Kuhn.initial_matching(bp_graph, left_partition)
+      # , initial_matching), 3)
+      assert_matching(Kuhn.run(bp_graph, left_partition), 3)
     end
 
     test "initial_matching (6 vertices)" do
       right_side_neighbors = @six_vertices_instance
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
-      #initial_matching = Kuhn.initial_matching(bp_graph, left_partition)
-      #initial_matching = Kuhn.initial_matching(bp_graph, left_partition, initial_matching)
+      # initial_matching = Kuhn.initial_matching(bp_graph, left_partition)
+      # initial_matching = Kuhn.initial_matching(bp_graph, left_partition, initial_matching)
 
       assert_matching(Kuhn.run(bp_graph, left_partition), 6)
     end
 
-    test "fixed matchings that are not edges will be ignored" do
+    test "fixed matching" do
+      right_side_neighbors = @six_vertices_instance
+
+      {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
+
+      fixed_matching = %{{:L, 1} => {:R, 4}}
+      matching = Kuhn.run(bp_graph, left_partition, fixed_matching: fixed_matching)
+
+      assert_matching(matching, 6)
+
+      ## Fixed matching is respected
+      assert {:R, 4} = Map.get(matching, {:L, 1})
+
+      matching_no_fixed = Kuhn.run(bp_graph, left_partition)
+
+      # Matching with nothing fixed is different
+      refute {:R, 4} == Map.get(matching_no_fixed, {:L, 1})
+
+
+    end
+
+    test "fixed matchings that are not in left partition will fire an exception" do
       right_side_neighbors = @maximum_2_instance
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
       ## There is no value 0 for any of the left-side vertices
       non_value_edge = %{{:R, 0} => {:L, 1}}
-      refute {:R, 0} in (Kuhn.run(bp_graph, left_partition, non_value_edge) |> Map.keys())
+
+      assert catch_throw(
+               {:error, {:not_in_left_partition, {:R, 0}}} =
+                 Kuhn.run(bp_graph, left_partition, fixed_matching: non_value_edge)
+             )
 
       non_variable_edge = %{{:R, 1} => {:L, 0}}
-      refute {:L, 0} in (Kuhn.run(bp_graph, left_partition, non_variable_edge) |> Map.values())
 
+      assert catch_throw(
+               {:error, {:not_in_left_partition, {:L, 0}}} =
+                 Kuhn.run(bp_graph, left_partition, fixed_matching: non_variable_edge)
+             )
     end
   end
 
