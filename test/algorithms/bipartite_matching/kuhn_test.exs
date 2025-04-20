@@ -66,8 +66,6 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       right_side_neighbors = @three_vertices_instance
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
-      # initial_matching = Kuhn.initial_matching(bp_graph, left_partition)
-      # , initial_matching), 3)
       assert_matching(Kuhn.run(bp_graph, left_partition), 3)
     end
 
@@ -120,6 +118,14 @@ defmodule BitGraphTest.Algorithms.Kuhn do
                {:error, {:not_in_left_partition, {:L, 0}}} =
                  Kuhn.run(bp_graph, left_partition, fixed_matching: non_variable_edge)
              )
+    end
+
+    test "required matching size" do
+      right_side_neighbors = @three_vertices_instance
+
+      {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
+      refute Kuhn.run(bp_graph, left_partition, required_size: 4)
+      assert Kuhn.run(bp_graph, left_partition, required_size: 3)
     end
   end
 

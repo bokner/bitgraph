@@ -16,7 +16,9 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   Options:
   - :fixed_matching (optional) - The edges that have to be in matching. This is a `left_vertex => right vertex`
     , where `left_vertex` is a vertex from `left_partition`
+  - :required_size (optional) - The required size of maximum matching. If not reached, algorithm returns `nil`
   """
+  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: map() |  nil
   def run(graph, left_partition, opts \\ [])
 
   def run(graph, left_partition, opts) when is_list(left_partition) do
@@ -118,7 +120,8 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       used: Array.new(num_vertices),
       match: Array.new(num_vertices),
       match_count: :counters.new(1, [:atomics]),
-      n: num_vertices
+      n: num_vertices,
+      required_size: Keyword.get(opts, :required_size)
     }
     |> apply_fixed_matching(graph, left_partition, Keyword.get(opts, :fixed_matching))
     |> generate_initial_matching(graph, left_partition)
@@ -129,9 +132,14 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     state
   end
 
-  defp get_matching(%{match: match} = state, graph) do
+  defp get_matching(%{required_size: required_size} = state, graph) do
     m_count = get_matching_count(state)
+    if is_nil(required_size) || (m_count == required_size) do
+      get_matching_impl(state, graph, m_count)
+    end
+  end
 
+  defp get_matching_impl(%{match: match} = state, graph, m_count) do
     Enum.reduce_while(1..Array.size(match), {0, Map.new()}, fn idx, {c, match_acc} = acc ->
       case get_match(state, idx) do
         value when value == 0 ->

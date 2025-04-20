@@ -6,6 +6,9 @@ defmodule BitGraph do
   @doc """
 
   """
+
+  @type t :: map()
+  
   alias BitGraph.{V, E, Adjacency}
 
   def new(opts \\ []) do
