@@ -12,7 +12,7 @@ defmodule BitGraphTest.Algorithms.SCC do
     assert SCC.Kozaraju.strongly_connected?(graph)
   end
 
-  test "DAG is not a stronly connected graph" do
+  test "DAG cannot be stronly connected" do
     graph = tree_example()
     refute SCC.Tarjan.strongly_connected?(graph)
     refute SCC.Kozaraju.strongly_connected?(graph)

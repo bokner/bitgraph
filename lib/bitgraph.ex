@@ -8,7 +8,7 @@ defmodule BitGraph do
   """
 
   @type t :: map()
-  
+
   alias BitGraph.{V, E, Adjacency}
 
   def new(opts \\ []) do
@@ -37,6 +37,13 @@ defmodule BitGraph do
         end
       end
     )
+  end
+
+  def strong_components(graph, opts \\ []) do
+    BitGraph.Algorithms.strong_components(graph, opts)
+    |> Enum.map(fn component ->
+      MapSet.new(component, fn vertex_idx -> BitGraph.V.get_vertex(graph, vertex_idx) end)
+    end)
   end
 
   def default_opts() do
@@ -87,6 +94,10 @@ defmodule BitGraph do
     graph[:vertices][:num_vertices]
   end
 
+  def add_edge(graph, %E{from: from, to: to, opts: opts}) do
+    add_edge(graph, from, to, opts)
+  end
+
   def add_edge(graph, from, to, opts \\ []) do
     graph
     |> V.add_vertex(from, opts)
@@ -108,6 +119,8 @@ defmodule BitGraph do
         add_edge(acc, from, to)
       {from, to, opts}, acc ->
         add_edge(acc, from, to, opts)
+      %E{} = edge, acc ->
+        add_edge(acc, edge)
     end)
   end
 

@@ -71,6 +71,9 @@ defmodule BitGraphTest do
       assert 2 == BitGraph.edges(graph, "A") |> MapSet.size()
       assert 2 == BitGraph.edges(graph, "B") |> MapSet.size()
       assert 2 == BitGraph.num_edges(graph)
+      graph = BitGraph.add_edge(graph, %BitGraph.E{from: "C", to: "A"})
+      assert 3 == BitGraph.edges(graph, "A") |> MapSet.size()
+      assert 1 == BitGraph.edges(graph, "C") |> MapSet.size()
     end
 
     test "delete edge" do
@@ -112,6 +115,11 @@ defmodule BitGraphTest do
       ## Vertex not in graph
       assert BitGraph.in_neighbors(graph, :c) == MapSet.new([])
       assert BitGraph.out_neighbors(graph, :c) == MapSet.new([])
+      ## Add BitGraph.E
+      graph = BitGraph.add_edge(graph, %BitGraph.E{from: :c, to: :a})
+      assert  BitGraph.in_neighbors(graph, :a) == MapSet.new([:c])
+      assert  BitGraph.out_neighbors(graph, :c) == MapSet.new([:a])
+
     end
 
     test "degrees" do
