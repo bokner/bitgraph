@@ -77,8 +77,7 @@ defmodule BitGraphTest do
     end
 
     test "delete edge" do
-      graph = BitGraph.new()
-      graph = BitGraph.add_edge(graph, :v1, :v2)
+      graph = BitGraph.new() |> BitGraph.add_edge(:v1, :v2)
       assert map_size(graph.edges) == 1
       assert adjacent_vertices?(graph, :v1, :v2)
       ## Try to delete non-existing edge
@@ -86,8 +85,12 @@ defmodule BitGraphTest do
       assert map_size(graph.edges) == 1
       ## Delete existing edge
       graph = BitGraph.delete_edge(graph, :v1, :v2)
-      assert map_size(graph.edges) == 0
+      assert BitGraph.num_edges(graph) == 0
       refute adjacent_vertices?(graph, :v1, :v2)
+      ## Delete BitGraph.E
+      graph = BitGraph.add_edge(graph, :v3, :v4)
+      edge = BitGraph.get_edge(graph, :v3, :v4)
+      assert graph |> BitGraph.delete_edge(edge) |> BitGraph.num_edges() == 0
     end
 
     test "delete vertex" do

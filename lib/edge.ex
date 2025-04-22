@@ -4,8 +4,8 @@ defmodule BitGraph.E do
             opts: []
 
   @type t :: %__MODULE__{
-          from: integer(),
-          to: integer(),
+          from: any(),
+          to: any(),
           opts: Keyword.t()
         }
   alias BitGraph.Adjacency

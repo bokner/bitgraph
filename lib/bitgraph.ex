@@ -94,6 +94,10 @@ defmodule BitGraph do
     graph[:vertices][:num_vertices]
   end
 
+  def add_edge(graph, {_edge_key, %E{} = edge}) do
+    add_edge(graph, edge)
+  end
+
   def add_edge(graph, %E{from: from, to: to, opts: opts}) do
     add_edge(graph, from, to, opts)
   end
@@ -122,6 +126,14 @@ defmodule BitGraph do
       %E{} = edge, acc ->
         add_edge(acc, edge)
     end)
+  end
+
+  def delete_edge(graph, {_edge_key, %E{} = edge}) do
+    delete_edge(graph, edge)
+  end
+
+  def delete_edge(graph, %E{from: from, to: to} = _edge) do
+    delete_edge(graph, from, to)
   end
 
   def delete_edge(graph, from, to) do
