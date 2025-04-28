@@ -16,11 +16,16 @@ defmodule BitGraph do
     %{
       vertices: V.init_vertices(opts),
       edges: E.init_edges(opts),
-      adjacency: Adjacency.init_adjacency_table(opts[:max_vertices])
+      adjacency: Adjacency.init_adjacency_table(opts[:max_vertices]),
+      owner: self()
     }
   end
 
-  def copy(%{adjacency: adjacency} = graph) do
+  def copy(graph) do
+    copy(graph, :adjacency)
+  end
+
+  def copy(%{adjacency: adjacency} = graph, :adjacency) do
     Map.put(graph, :adjacency, Adjacency.copy(adjacency, graph.edges))
   end
 
@@ -83,7 +88,7 @@ defmodule BitGraph do
 
 
   def vertices(graph) do
-    graph[:vertices][:index_to_vertex] |> Map.values() |> Enum.map(&(&1.vertex))
+    graph[:vertices][:index_to_vertex] |> Map.values() |> MapSet.new(&(&1.vertex))
   end
 
   def vertex_indices(graph) do
@@ -158,11 +163,11 @@ defmodule BitGraph do
   end
 
   def edges(graph) do
-    E.edges(graph)
+    E.edges(graph) |> Map.values()
   end
 
   def num_edges(graph) do
-    edges(graph) |> map_size()
+    E.edges(graph) |> map_size()
   end
 
   def edges(graph, vertex, edge_fun \\ &default_edge_info/3) do

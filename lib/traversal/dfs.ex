@@ -39,6 +39,10 @@ defmodule BitGraph.Dfs do
         - after (:postorder)
         - before and after (:both)
   """
+  def run(_graph, [], opts) do
+    Keyword.get(opts, :state)
+  end
+
   def run(graph, vertices, opts) when is_list(vertices) do
     initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices), opts)
 

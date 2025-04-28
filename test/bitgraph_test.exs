@@ -18,7 +18,7 @@ defmodule BitGraphTest do
         |> BitGraph.add_edge(:a, :b, edge_data)
       copy = BitGraph.copy(graph)
 
-      assert length(BitGraph.vertices(graph)) == 2
+      assert MapSet.size(BitGraph.vertices(graph)) == 2
       assert MapSet.size(BitGraph.out_edges(copy, :a)) == 1
       assert MapSet.size(BitGraph.in_edges(copy, :b)) == 1
 
