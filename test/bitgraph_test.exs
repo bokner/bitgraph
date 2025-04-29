@@ -97,12 +97,14 @@ defmodule BitGraphTest do
       graph = BitGraph.new()
       graph = BitGraph.add_edge(graph, :a, :b)
       assert BitGraph.num_vertices(graph) == 2
+      assert BitGraph.vertex_indices(graph) |> Enum.sort() == [1, 2]
       assert map_size(graph.edges) == 1
 
       assert adjacent_vertices?(graph, :a, :b)
 
-      graph = BitGraph.delete_vertex(graph, :b)
+      graph = BitGraph.delete_vertex(graph, :a)
       assert BitGraph.num_vertices(graph) == 1
+      assert BitGraph.vertex_indices(graph) == [2]
       assert map_size(graph.edges) == 0
       refute adjacent_vertices?(graph, :a, :b)
 

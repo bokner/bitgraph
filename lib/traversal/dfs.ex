@@ -57,7 +57,7 @@ defmodule BitGraph.Dfs do
   end
 
   defp init_dfs(graph, root, opts) do
-    num_vertices = BitGraph.num_vertices(graph)
+    max_index = Enum.max(BitGraph.vertex_indices(graph))
 
     %{
       component_top: root,
@@ -80,12 +80,12 @@ defmodule BitGraph.Dfs do
       #### black, if the vertex was visited
       #### gray,  if dfs has already exited the vertex.
       ####
-      color: Array.new(num_vertices),
+      color: Array.new(max_index),
       ## Time of dfs entering the vertex
-      time_in: Array.new(num_vertices),
+      time_in: Array.new(max_index),
       ## Time of dfs exiting vertex
-      time_out: Array.new(num_vertices),
-      parent: Array.new(num_vertices),
+      time_out: Array.new(max_index),
+      parent: Array.new(max_index),
       acc: nil
     }
   end
@@ -271,8 +271,11 @@ defmodule BitGraph.Dfs do
 
   defp order_impl(arr_ref, order) do
     arr_ref
-    |> Array.to_list()
-    |> Enum.with_index(1)
+    ## Skip vertices with unassigned orders
+    |> Array.reduce({[], 1}, fn 0, {list, idx} -> {list, idx + 1}
+      el, {list, idx} -> {[{el, idx} | list], idx + 1}
+    end)
+    |> elem(0)
     |> Enum.sort(order)
     |> Enum.map(fn {_time_out, vertex_idx} -> vertex_idx end)
   end

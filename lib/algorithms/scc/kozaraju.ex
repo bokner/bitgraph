@@ -6,6 +6,8 @@ defmodule BitGraph.Algorithms.SCC.Kozaraju do
     component_handler \\ fn component, _state -> component end,
       first_pass_opts \\ []
     ) do
+      BitGraph.num_vertices(graph) == 0 && [] ||
+      
     graph
     |> Dfs.run(first_pass_opts)
     |> Dfs.order(:out, :desc)

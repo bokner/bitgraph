@@ -41,7 +41,15 @@ defmodule BitGraphTest.Algorithms.SCC do
         assert Enum.sort(normalized_sccs) == Enum.sort(valid_sccs)
         end)
       end)
+
   end
+
+  test "SCC for empty graph" do
+    graph = BitGraph.new()
+    assert SCC.Kozaraju.run(graph) == []
+    assert SCC.Tarjan.run(graph) == []
+  end
+
 
   defp strongly_connected_graph_example() do
     vertices = 1..7

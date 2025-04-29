@@ -10,6 +10,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
     component_handler \\ fn component, _state -> component end,
     opts \\ []
     ) when is_function(component_handler, 2) do
+      BitGraph.num_vertices(graph) == 0 && [] ||
     graph
     |> Dfs.run(
       process_vertex_fun: fn state, v, event ->

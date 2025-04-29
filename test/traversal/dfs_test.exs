@@ -28,6 +28,11 @@ defmodule BitGraphTest.Dfs do
 
   end
 
+  test "Dfs on empty graph" do
+    graph = BitGraph.new()
+    assert Dfs.run(graph) == nil
+  end
+
   defp assert_equal_edges(type_map, type, edges) do
     assert Map.get(type_map, type) |> Enum.sort() == Enum.sort(edges)
   end

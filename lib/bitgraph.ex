@@ -92,7 +92,7 @@ defmodule BitGraph do
   end
 
   def vertex_indices(graph) do
-    Range.to_list(1..num_vertices(graph))
+    graph[:vertices][:index_to_vertex] |> Map.keys()
   end
 
   def num_vertices(graph) do
