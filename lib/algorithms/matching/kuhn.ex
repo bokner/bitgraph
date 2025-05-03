@@ -11,14 +11,18 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
 
   @doc """
   `graph` - bipartite graph.
-  `left_partition` list or set of vertices that represent either part of `graph`.
+  `left_partition` - list or set of vertices that represent either part of `graph`.
 
   Options:
   - :fixed_matching (optional) - The edges that have to be in matching. This is a `left_vertex => right vertex`
     , where `left_vertex` is a vertex from `left_partition`
   - :required_size (optional) - The required size of maximum matching. If not reached, algorithm returns `nil`
+
+  Output: map with keys
+    - :matching - map of left_vertex => right_vertex
+    - :free - unmatched vertices from right partition
   """
-  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: map() |  nil
+  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: %{matching: Map.t(), free: MapSet.t()} |  nil
   def run(graph, left_partition, opts \\ [])
 
   def run(graph, left_partition, opts) when is_list(left_partition) do
@@ -41,17 +45,17 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp process_vertex(state, graph, vertex_idx) do
-    not assigned?(state, vertex_idx) &&
-      dfs(graph, vertex_idx, reset_used(state)) &&
+    not fixed?(state, vertex_idx) &&
+      dfs(graph, vertex_idx, state)
+      |> tap(fn success? -> success? && reset_used(state) end) &&
       increase_matching_count(state)
 
     state
   end
 
   defp generate_initial_matching(
-         state,
-         graph,
-         left_partition
+         %{left_partition: left_partition} = state,
+         graph
        ) do
     initial_matching =
       Enum.reduce(left_partition, MapSet.new(), fn lp_vertex, acc ->
@@ -75,7 +79,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     Map.put(state, :initially_matched, initial_matching)
   end
 
-  defp apply_fixed_matching(state, graph, left_partition, fixed_matching) do
+  defp apply_fixed_matching(%{left_partition: left_partition} = state, graph, fixed_matching) do
     indexed_fixed_matching =
       Map.new(fixed_matching || Map.new(), fn {left_vertex, right_vertex} ->
         MapSet.member?(left_partition, left_vertex) ||
@@ -91,10 +95,14 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     Map.put(state, :fixed_matching, indexed_fixed_matching)
   end
 
-  defp assigned?(%{initially_matched: initial_matching} = _state, vertex)
+  defp fixed?(%{initially_matched: initial_matching} = _state, vertex)
        when is_integer(vertex) do
     # false
     MapSet.member?(initial_matching, vertex)
+  end
+
+  defp fixed?(_state, _vertex) do
+    false
   end
 
   defp update_match(%{match: match} = _state, right, left)
@@ -117,14 +125,15 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   defp initial_state(graph, left_partition, opts) do
     num_vertices = BitGraph.num_vertices(graph)
     %{
+      left_partition: left_partition,
       used: Array.new(num_vertices),
       match: Array.new(num_vertices),
       match_count: :counters.new(1, [:atomics]),
       n: num_vertices,
       required_size: Keyword.get(opts, :required_size)
     }
-    |> apply_fixed_matching(graph, left_partition, Keyword.get(opts, :fixed_matching))
-    |> generate_initial_matching(graph, left_partition)
+    |> apply_fixed_matching(graph, Keyword.get(opts, :fixed_matching, Map.new()))
+    |> generate_initial_matching(graph)
   end
 
   defp reset_used(%{used: used} = state) do
@@ -135,30 +144,35 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   defp get_matching(%{required_size: required_size} = state, graph) do
     m_count = get_matching_count(state)
     if is_nil(required_size) || (m_count == required_size) do
-      get_matching_impl(state, graph, m_count)
+      get_matching_impl(state, graph)
     end
   end
 
-  defp get_matching_impl(%{match: match} = state, graph, m_count) do
-    Enum.reduce_while(1..Array.size(match), {0, Map.new()}, fn idx, {c, match_acc} = acc ->
-      case get_match(state, idx) do
-        value when value == 0 ->
-          {:cont, acc}
+  defp get_matching_impl(%{left_partition: left_partition, match: match} = state, graph) do
+    Enum.reduce_while(1..Array.size(match), {0, %{matching: Map.new(), free: MapSet.new()}}, fn idx, {c, match_acc} = acc ->
+      candidate_vertex = BitGraph.V.get_vertex(graph, idx)
+      if MapSet.member?(left_partition, candidate_vertex) do
+        ## Ignore left_partition
+        {:cont, acc}
+      else
+        case get_match(state, idx) do
+          value when value == 0 ->
 
-        value ->
-          acc =
-            {c + 1,
-             Map.put(
-               match_acc,
-               BitGraph.V.get_vertex(graph, value),
-               BitGraph.V.get_vertex(graph, idx)
-             )}
+            {:cont,
+              {c, Map.update!(match_acc, :free, fn existing -> MapSet.put(existing, candidate_vertex) end)}
+            }
 
-          if c + 1 == m_count do
-            {:halt, acc}
-          else
-            {:cont, acc}
-          end
+          value ->
+            acc =
+              {c + 1,
+               put_in(
+                 match_acc,
+                 [:matching, BitGraph.V.get_vertex(graph, value)],
+                 candidate_vertex
+               )}
+              {:cont, acc}
+        end
+
       end
     end)
     |> elem(1)

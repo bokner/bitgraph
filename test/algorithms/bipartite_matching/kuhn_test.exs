@@ -13,6 +13,13 @@ defmodule BitGraphTest.Algorithms.Kuhn do
   ]
   @maximum_2_instance [[1, 2, 3], [1, 2, 3]]
 
+  @free_node_instance [
+    [1],
+    [1, 2],
+    [1, 2, 3, 4],
+    [1, 2, 4, 5]
+  ]
+
   describe "Kuhn maximal matching" do
     test "3 vertices in left-side partition" do
       right_side_neighbors = @three_vertices_instance
@@ -91,12 +98,12 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       assert_matching(matching, 6)
 
       ## Fixed matching is respected
-      assert {:R, 5} = Map.get(matching, {:L, 1})
+      assert {:R, 5} = Map.get(matching.matching, {:L, 1})
 
       matching_no_fixed = Kuhn.run(bp_graph, left_partition)
 
       # Matching with nothing fixed is different
-      refute {:R, 5} == Map.get(matching_no_fixed, {:L, 1})
+      refute {:R, 5} == Map.get(matching_no_fixed.matching, {:L, 1})
 
 
     end
@@ -127,6 +134,21 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       refute Kuhn.run(bp_graph, left_partition, required_size: 4)
       assert Kuhn.run(bp_graph, left_partition, required_size: 3)
     end
+
+    test "free nodes" do
+      right_side_neighbors = @free_node_instance
+
+      {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
+      %{free: free_nodes, matching: matching} = Kuhn.run(bp_graph, left_partition)
+      ## Free nodes belong to value graph
+      assert Enum.all?(free_nodes, fn node -> BitGraph.get_vertex(bp_graph, node) end)
+      ## All free nodes are in the 'right' partition
+      assert MapSet.intersection(free_nodes, left_partition) |> MapSet.size() == 0
+      ## Free nodes are not in matching
+      refute Enum.any?(free_nodes, fn node -> node in Map.values(matching) end)
+      ## For this case, there is a single free node
+      assert MapSet.size(free_nodes) == 1
+    end
   end
 
   defp build_bp_graph(right_side_neighbors) do
@@ -135,7 +157,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
     graph_input = Enum.zip(left_partition, right_side_neighbors)
 
     bp_graph =
-      Enum.reduce(graph_input, BitGraph.new(), fn {ls_vertex, rs_neighbors}, g_acc ->
+      Enum.reduce(graph_input, BitGraph.new() |> BitGraph.add_vertices(left_partition), fn {ls_vertex, rs_neighbors}, g_acc ->
         edges = Enum.map(rs_neighbors, fn rsn -> {ls_vertex, {:R, rsn}} end)
         BitGraph.add_edges(g_acc, edges)
       end)
@@ -144,7 +166,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
   end
 
   defp assert_matching(matching, size) do
-    assert size == map_size(matching)
-    assert size == Map.values(matching) |> Enum.uniq() |> length()
+    assert size == map_size(matching.matching)
+    assert size == Map.values(matching.matching) |> Enum.uniq() |> length()
   end
 end
