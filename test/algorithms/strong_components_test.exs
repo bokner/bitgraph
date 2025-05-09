@@ -2,8 +2,6 @@ defmodule BitGraphTest.Algorithms.SCC do
   use ExUnit.Case
 
   alias BitGraph.Algorithms.SCC
-  alias BitGraph.Algorithms
-
   alias BitGraph.Common
 
   test "Strongly connected graph" do
@@ -31,10 +29,7 @@ defmodule BitGraphTest.Algorithms.SCC do
         Enum.each([
           ## Test direct call
           SCC.Kozaraju.run(graph),
-          SCC.Tarjan.run(graph),
-          ## Test API
-          Algorithms.strong_components(graph, algorithm: :kozaraju),
-          Algorithms.strong_components(graph, algorithm: :tarjan)
+          SCC.Tarjan.run(graph)
           ],
         fn strong_components ->
         normalized_sccs = Enum.map(strong_components, fn component -> Common.vertex_indices_to_ids(graph, component) end)

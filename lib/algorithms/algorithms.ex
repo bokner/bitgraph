@@ -1,6 +1,7 @@
 defmodule BitGraph.Algorithms do
   alias BitGraph.{Dfs, Array, E}
   alias BitGraph.Algorithms.{SCC, Matching}
+  alias BitGraph.Traversal.Utils
 
   def topsort(graph) do
     graph
@@ -27,9 +28,9 @@ defmodule BitGraph.Algorithms do
     algo = Keyword.get(opts, :algorithm) || :tarjan
     case algo do
       :kozaraju ->
-        SCC.Kozaraju.strongly_connected?(graph)
+        SCC.Kozaraju.strongly_connected?(graph, opts)
       :tarjan ->
-        SCC.Tarjan.strongly_connected?(graph)
+        SCC.Tarjan.strongly_connected?(graph, opts)
       other -> throw({:scc, :unknown_algo, other})
     end
   end
@@ -54,11 +55,11 @@ defmodule BitGraph.Algorithms do
     [
       component_handler: fn component, _state -> component end,
       algorithm: :kozaraju
-    ], opts)
+    ], Keyword.put(opts, :vertices, Utils.build_vertex_indices(graph, Keyword.get(opts, :vertices, :all))))
 
     case opts[:algorithm] do
-      :tarjan -> SCC.Tarjan.run(graph, opts[:component_handler])
-      :kozaraju -> SCC.Kozaraju.run(graph, opts[:component_handler])
+      :tarjan -> SCC.Tarjan.run(graph, opts)
+      :kozaraju -> SCC.Kozaraju.run(graph, opts)
       unknown -> throw({:error, {:scc_unknown_algo, unknown}})
     end
   end

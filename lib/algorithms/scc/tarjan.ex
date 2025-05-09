@@ -8,19 +8,18 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
 
   def run(
         graph,
-        component_handler \\ fn component, _state -> component end,
         opts \\ []
-      )
-      when is_function(component_handler, 2) do
+      ) do
     (BitGraph.num_vertices(graph) == 0 && []) ||
       graph
       |> Dfs.run(
-        Keyword.merge(opts,
-          process_vertex_fun: fn state, v, event ->
+        Keyword.merge(
+          [
+            process_vertex_fun: fn state, v, event ->
             tarjan_vertex(state, v, event,
-              component_handler: component_handler,
               num_vertices: BitGraph.num_vertices(graph),
-              on_dag_handler: opts[:on_dag_handler]
+              on_dag_handler: opts[:on_dag_handler],
+              component_handler: opts[:component_handler] || fn component, _dfs_state -> component end
             )
           end,
           process_edge_fun: fn state, from, to, edge_type ->
@@ -37,8 +36,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
             end)
           end,
           edge_process_order: :postorder
-        )
-      )
+        ], opts))
       |> get_in([:acc, :sccs])
   end
 
@@ -46,13 +44,14 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
     try do
       run(
         graph,
-        fn component, _dfs_state ->
+        Keyword.merge(opts,
+        component_handler: fn component, _dfs_state ->
           throw(
             {:single_scc?, component && MapSet.size(component) == BitGraph.num_vertices(graph)}
           )
         end,
-        Keyword.merge(opts,
-          on_dag_handler: fn vertex ->
+
+        on_dag_handler: fn vertex ->
             throw({:error, :dag, vertex})
           end
         )
