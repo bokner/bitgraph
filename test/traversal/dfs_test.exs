@@ -13,7 +13,7 @@ defmodule BitGraphTest.Dfs do
     graph = BitGraph.new() |> BitGraph.add_vertices(1..8) |> BitGraph.add_edges(all_edges)
 
     type_map =
-    Dfs.run(graph, :all, process_edge_fun:
+    Dfs.run(graph, process_edge_fun:
       fn %{acc: acc} = _state, from, to, edge_type ->
         [{edge_type, {from, to}} | acc || []]
       end

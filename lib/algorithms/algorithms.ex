@@ -14,7 +14,7 @@ defmodule BitGraph.Algorithms do
     graph
     |> BitGraph.vertex_indices()
     |> Enum.reduce_while(nil, fn v, state_acc ->
-      state_acc = Dfs.run(graph, v, state: state_acc)
+      state_acc = Dfs.run(graph, vertices: v, state: state_acc)
       Dfs.acyclic?(state_acc) && {:halt, true} || {:cont, state_acc}
     end)
     |> then(
@@ -35,7 +35,7 @@ defmodule BitGraph.Algorithms do
   end
 
   def components(graph) do
-    Dfs.run(graph, :all, direction: :both, process_vertex_fun:
+    Dfs.run(graph, direction: :both, process_vertex_fun:
       fn %{component_top: root, acc: acc} = _state, v  ->
         case acc do
           nil -> %{root => MapSet.new([root, v])}
@@ -66,7 +66,7 @@ defmodule BitGraph.Algorithms do
 
   def get_cycle(graph, vertex) when is_integer(vertex) do
     if E.in_degree(graph, vertex) > 0 && E.out_degree(graph, vertex) > 0 do
-      Dfs.run(graph, vertex, process_edge_fun:
+      Dfs.run(graph, vertices: vertex, process_edge_fun:
         fn state, vertex, _neighbor, :back  ->
               {:stop,
                 build_cycle(graph, vertex, state[:parent])

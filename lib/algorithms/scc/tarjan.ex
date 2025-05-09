@@ -1,58 +1,66 @@
 defmodule BitGraph.Algorithms.SCC.Tarjan do
-
   alias BitGraph.{Dfs, Array, Stack}
+
   @doc """
     Tarjan algo for SCC.
     Roughly follows https://blog.heycoach.in/tarjans-algorithm-in-graph-theory/
   """
 
-  def run(graph,
-    component_handler \\ fn component, _state -> component end,
-    opts \\ []
-    ) when is_function(component_handler, 2) do
-      BitGraph.num_vertices(graph) == 0 && [] ||
-    graph
-    |> Dfs.run(
-      process_vertex_fun: fn state, v, event ->
-        tarjan_vertex(state, v, event,
-          component_handler: component_handler,
-          num_vertices: BitGraph.num_vertices(graph),
-          on_dag_handler: opts[:on_dag_handler]
+  def run(
+        graph,
+        component_handler \\ fn component, _state -> component end,
+        opts \\ []
+      )
+      when is_function(component_handler, 2) do
+    (BitGraph.num_vertices(graph) == 0 && []) ||
+      graph
+      |> Dfs.run(
+        Keyword.merge(opts,
+          process_vertex_fun: fn state, v, event ->
+            tarjan_vertex(state, v, event,
+              component_handler: component_handler,
+              num_vertices: BitGraph.num_vertices(graph),
+              on_dag_handler: opts[:on_dag_handler]
+            )
+          end,
+          process_edge_fun: fn state, from, to, edge_type ->
+            tarjan_edge(state, from, to, edge_type)
+            |> then(fn acc ->
+              ## Apply caller-provided function for processing edge
+              case opts[:process_edge_fun] do
+                nil ->
+                  acc
+
+                caller_process_edge_fun ->
+                  caller_process_edge_fun.(state, from, to, edge_type)
+              end
+            end)
+          end,
+          edge_process_order: :postorder
         )
-      end,
-      process_edge_fun: fn state, from, to, edge_type ->
-        tarjan_edge(state, from, to, edge_type)
-        |> then(fn acc ->
-          ## Apply caller-provided function for processing edge
-          case opts[:process_edge_fun] do
-            nil -> acc
-            caller_process_edge_fun ->
-              caller_process_edge_fun.(state, from, to, edge_type)
-            end
-        end)
-      end,
-      edge_process_order: :postorder
-    )
-    |> get_in([:acc, :sccs])
+      )
+      |> get_in([:acc, :sccs])
   end
 
-  def strongly_connected?(graph) do
+  def strongly_connected?(graph, opts \\ []) do
     try do
-      run(graph,
-      fn component, _dfs_state ->
-        throw({:single_scc?, component && (MapSet.size(component) == BitGraph.num_vertices(graph))})
-
+      run(
+        graph,
+        fn component, _dfs_state ->
+          throw(
+            {:single_scc?, component && MapSet.size(component) == BitGraph.num_vertices(graph)}
+          )
         end,
-
-        on_dag_handler: fn vertex ->
-          throw({:error, :dag, vertex})
-        end)
-
+        Keyword.merge(opts,
+          on_dag_handler: fn vertex ->
+            throw({:error, :dag, vertex})
+          end
+        )
+      )
     catch
       {:single_scc?, res} -> res
       {:error, :dag, _vertex} -> false
     end
-
   end
 
   defp initialize_tarjan(opts) do
@@ -84,13 +92,18 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
     ## Pre-process based on whether the loop occurs after
     ## processing this vertex.
     ## Used for cases where we want to shortcut processing
-    ## (for instance, figure if a graaph is strongly connected)
-    acc = case opts[:on_dag_handler] do
-      nil -> acc
-      on_dag_handler when state.dag ->
-        on_dag_handler.(vertex)
-      _ -> acc
-    end
+    ## (for instance, figure if a graph is strongly connected without computing all strong components)
+    acc =
+      case opts[:on_dag_handler] do
+        nil ->
+          acc
+
+        on_dag_handler when state.dag ->
+          on_dag_handler.(vertex)
+
+        _ ->
+          acc
+      end
 
     if Array.get(lowest, vertex) == Dfs.time_in(state, vertex) do
       new_component = tarjan_pop_component(state, vertex)
@@ -136,5 +149,4 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
       (el == vertex && {:halt, acc}) || {:cont, acc}
     end)
   end
-
 end

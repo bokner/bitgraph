@@ -12,21 +12,9 @@ defmodule BitGraph.Dfs do
   @gray_vertex 1
   @black_vertex 2
 
-  def run(graph, opts \\ []) do
-    run(graph, :all, opts)
-  end
-
-  def run(graph, :all, opts) do
-    run(graph, BitGraph.vertex_indices(graph), opts)
-  end
-
-  def run(graph, root, opts) when is_integer(root) do
-    run(graph, [root], opts)
-  end
-
   @doc """
   Options:
-
+  - `vertices` - list of vertex indices (not vertex ids!) or :all (default)
   - `state` - initial state
   - `direction` - direction of edges connected to current vertex
      - :forward - out-edges
@@ -39,12 +27,21 @@ defmodule BitGraph.Dfs do
         - after (:postorder)
         - before and after (:both)
   """
-  def run(_graph, [], opts) do
-    Keyword.get(opts, :state)
-  end
 
-  def run(graph, vertices, opts) when is_list(vertices) do
-    initial_state = Keyword.get(opts, :state) || init_dfs(graph, hd(vertices), opts)
+  def run(graph, opts \\ []) do
+    #initial_state = Keyword.get(opts, :state) || init_dfs(graph, opts)
+    vertices = build_vertices(graph, Keyword.get(opts, :vertices, :all))
+    initial_state = Keyword.get(opts, :state) || (
+      case vertices do
+        [] -> nil
+        %MapSet{} = set ->
+          MapSet.size(set) > 0 && init_dfs(graph, opts) || nil
+        list when is_list(list) ->
+          init_dfs(graph, opts)
+        _other ->
+          throw({:error, :invalid_vertex_list})
+        end
+    )
 
     Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
       if vertex_color(state_acc, vertex) == @white_vertex do
@@ -56,11 +53,23 @@ defmodule BitGraph.Dfs do
     end)
   end
 
-  defp init_dfs(graph, root, opts) do
+  defp build_vertices(graph, :all) do
+    BitGraph.vertex_indices(graph)
+  end
+
+  defp build_vertices(_graph, vertex) when is_integer(vertex) do
+    [vertex]
+  end
+
+  defp build_vertices(_graph, vertices) when is_list(vertices) or is_struct(vertices, MapSet) do
+    vertices
+  end
+
+  defp init_dfs(graph, opts) do
     max_index = Enum.max(BitGraph.vertex_indices(graph))
 
     %{
-      component_top: root,
+      component_top: nil, #root,
       direction: Keyword.get(opts, :direction, :forward),
       process_edge_fun:
         Keyword.get(opts, :process_edge_fun, default_process_edge_fun())

@@ -7,13 +7,13 @@ defmodule BitGraph.Algorithms.SCC.Kozaraju do
       first_pass_opts \\ []
     ) do
       BitGraph.num_vertices(graph) == 0 && [] ||
-      
+
     graph
     |> Dfs.run(first_pass_opts)
     |> Dfs.order(:out, :desc)
     |> Enum.reduce({nil, []}, fn v, {state_acc, components_acc} ->
       state =
-        Dfs.run(graph, v,
+        Dfs.run(graph, vertices: v,
           direction: :reverse,
           state: state_acc,
           process_vertex_fun: fn %{acc: acc} = _state, vertex ->
@@ -29,15 +29,17 @@ defmodule BitGraph.Algorithms.SCC.Kozaraju do
     |> elem(1)
   end
 
-  def strongly_connected?(graph) do
+  def strongly_connected?(graph, opts \\ []) do
     try do
       run(graph,
       fn component, _dfs_state ->
         throw({:single_scc?, component && (MapSet.size(component) == BitGraph.num_vertices(graph))})
         end,
 
+        Keyword.merge(opts,
         process_vertex_fun: fn(state, vertex, event) ->
           event == :processed && state.dag && throw({:error, :dag, vertex}) || state[:acc] end)
+      )
     catch
       {:single_scc?, res} -> res
       {:error, :dag, _vertex} -> false
