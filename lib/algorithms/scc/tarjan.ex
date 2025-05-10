@@ -1,6 +1,8 @@
 defmodule BitGraph.Algorithms.SCC.Tarjan do
   alias BitGraph.{Dfs, Array, Stack}
 
+  import BitGraph.Algorithms.SCC.Utils
+
   @doc """
     Tarjan algo for SCC.
     Roughly follows https://blog.heycoach.in/tarjans-algorithm-in-graph-theory/
@@ -10,16 +12,20 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
         graph,
         opts \\ []
       ) do
+    #IO.inspect(opts[:component_handler], label: :tarjan_opts)
     (BitGraph.num_vertices(graph) == 0 && []) ||
       graph
       |> Dfs.run(
-        Keyword.merge(
+        Keyword.merge(opts,
           [
             process_vertex_fun: fn state, v, event ->
             tarjan_vertex(state, v, event,
               num_vertices: BitGraph.num_vertices(graph),
               on_dag_handler: opts[:on_dag_handler],
-              component_handler: opts[:component_handler] || fn component, _dfs_state -> component end
+              component_handler:
+                (opts[:component_handler]  || {fn component, acc -> [component | acc] end, []}
+                )
+                |> wrap_component_handler()
             )
           end,
           process_edge_fun: fn state, from, to, edge_type ->
@@ -36,7 +42,8 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
             end)
           end,
           edge_process_order: :postorder
-        ], opts))
+        ])
+        )
       |> get_in([:acc, :sccs])
   end
 
@@ -45,7 +52,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
       run(
         graph,
         Keyword.merge(opts,
-        component_handler: fn component, _dfs_state ->
+        component_handler: fn component, _acc ->
           throw(
             {:single_scc?, component && MapSet.size(component) == BitGraph.num_vertices(graph)}
           )
@@ -69,7 +76,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
       stack: Stack.new(num_vertices),
       on_stack: Array.new(num_vertices),
       lowest: Array.new(num_vertices),
-      sccs: []
+      sccs: nil
     }
   end
 
@@ -106,7 +113,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
 
     if Array.get(lowest, vertex) == Dfs.time_in(state, vertex) do
       new_component = tarjan_pop_component(state, vertex)
-      Map.put(acc, :sccs, [opts[:component_handler].(new_component, state) | sccs])
+      Map.put(acc, :sccs, opts[:component_handler].(new_component, sccs))
     else
       acc
     end
