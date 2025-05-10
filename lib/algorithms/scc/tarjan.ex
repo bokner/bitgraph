@@ -19,7 +19,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
             tarjan_vertex(state, v, event,
               num_vertices: BitGraph.num_vertices(graph),
               on_dag_handler: opts[:on_dag_handler],
-              component_handler: opts[:component_handler] || fn component, _dfs_state -> component end
+              component_handler: opts[:component_handler] || fn component, _acc -> component end
             )
           end,
           process_edge_fun: fn state, from, to, edge_type ->
@@ -45,7 +45,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
       run(
         graph,
         Keyword.merge(opts,
-        component_handler: fn component, _dfs_state ->
+        component_handler: fn component, _acc ->
           throw(
             {:single_scc?, component && MapSet.size(component) == BitGraph.num_vertices(graph)}
           )
@@ -106,7 +106,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
 
     if Array.get(lowest, vertex) == Dfs.time_in(state, vertex) do
       new_component = tarjan_pop_component(state, vertex)
-      Map.put(acc, :sccs, [opts[:component_handler].(new_component, state) | sccs])
+      Map.put(acc, :sccs, opts[:component_handler].(new_component, sccs) || sccs)
     else
       acc
     end
