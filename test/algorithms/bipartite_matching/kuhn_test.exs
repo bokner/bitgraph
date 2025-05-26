@@ -80,8 +80,6 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       right_side_neighbors = @six_vertices_instance
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
-      # initial_matching = Kuhn.initial_matching(bp_graph, left_partition)
-      # initial_matching = Kuhn.initial_matching(bp_graph, left_partition, initial_matching)
 
       assert_matching(Kuhn.run(bp_graph, left_partition), 6)
     end
@@ -108,23 +106,29 @@ defmodule BitGraphTest.Algorithms.Kuhn do
 
     end
 
-    test "fixed matchings that are not in left partition will fire an exception" do
+    test "valid fixed matching" do
       right_side_neighbors = @maximum_2_instance
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
       ## There is no value 0 for any of the left-side vertices
-      non_value_edge = %{{:R, 0} => {:L, 1}}
+      non_value_edge = %{{:R, 1} => {:L, 1}}
 
+      assert catch_throw(Kuhn.run(bp_graph, left_partition, fixed_matching: non_value_edge))
+                == {:error, {:not_in_left_partition, {:R, 1}}}
+
+      invalid_fixed_matching = %{{:L, 1} => {:R, 1}, {:L, 2} => {:R, 1}}
+      assert catch_throw(Kuhn.run(bp_graph, left_partition, fixed_matching: invalid_fixed_matching))
+      == {:error, {:invalid_fixed_matching, {:multiple_matches, {:R, 1}}}}
+
+    end
+
+    test "fixed matching that has duplicate values will fire an exception" do
+      {bp_graph, left_partition} = build_bp_graph(@three_vertices_instance)
+      invalid_fixed_matching = %{{:L, 1} => {:R, 0}, {:L, 2} => {:R, 0}}
       assert catch_throw(
-               {:error, {:not_in_left_partition, {:R, 0}}} =
-                 Kuhn.run(bp_graph, left_partition, fixed_matching: non_value_edge)
-             )
+        {:error, {:not_in_left_partition, {:L, 0}}} =
+          Kuhn.run(bp_graph, left_partition, fixed_matching: invalid_fixed_matching)
+      )
 
-      non_variable_edge = %{{:R, 1} => {:L, 0}}
-
-      assert catch_throw(
-               {:error, {:not_in_left_partition, {:L, 0}}} =
-                 Kuhn.run(bp_graph, left_partition, fixed_matching: non_variable_edge)
-             )
     end
 
     test "required matching size" do
