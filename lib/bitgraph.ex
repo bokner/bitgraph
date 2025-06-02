@@ -21,11 +21,7 @@ defmodule BitGraph do
     }
   end
 
-  def copy(graph) do
-    copy(graph, :adjacency)
-  end
-
-  def copy(%{adjacency: adjacency} = graph, :adjacency) do
+  def copy(%{adjacency: adjacency} = graph) do
     Map.put(graph, :adjacency, Adjacency.copy(adjacency, graph.edges))
   end
 
@@ -170,12 +166,12 @@ defmodule BitGraph do
     E.edges(graph) |> map_size()
   end
 
-  def edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
-    MapSet.union(in_edges(graph, vertex, edge_fun), out_edges(graph, vertex, edge_fun))
+  def edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
+    MapSet.union(in_edges(graph, vertex, edge_fun, opts), out_edges(graph, vertex, edge_fun, opts))
   end
 
-  def in_edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
-    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :in_edges)
+  def in_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
+    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :in_edges, opts)
   end
 
   def in_neighbors(graph, vertex) do
@@ -186,28 +182,28 @@ defmodule BitGraph do
     out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to) end)
   end
 
-  def neighbors(graph, vertex) do
-    MapSet.union(out_neighbors(graph, vertex), in_neighbors(graph, vertex))
+  def neighbors(graph, vertex, opts \\ []) do
+    MapSet.union(out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts))
   end
 
-  def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3) do
-    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out_edges)
+  def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
+    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out_edges, opts)
   end
 
-  def in_degree(graph, vertex) do
-    in_neighbors(graph, vertex) |> MapSet.size()
+  def in_degree(graph, vertex, opts \\ []) do
+    in_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
-  def degree(graph, vertex) do
-    in_degree(graph, vertex) + out_degree(graph, vertex)
+  def degree(graph, vertex, opts \\ []) do
+    in_degree(graph, vertex, opts) + out_degree(graph, vertex, opts)
   end
 
-  def out_degree(graph, vertex) do
-    out_neighbors(graph, vertex) |> MapSet.size()
+  def out_degree(graph, vertex, opts \\ []) do
+    out_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
-  defp edges_impl(graph, vertex_index, edge_info_fun, direction) when is_integer(vertex_index) do
-    neighbor_indices = neighbors_impl(graph, vertex_index, direction)
+  defp edges_impl(graph, vertex_index, edge_info_fun, direction, opts) when is_integer(vertex_index) do
+    neighbor_indices = neighbors_impl(graph, vertex_index, direction, opts)
     Enum.reduce(neighbor_indices, MapSet.new(), fn neighbor_index, acc ->
       {from_vertex, to_vertex} = edge_vertices(vertex_index, neighbor_index, direction)
       case edge_info_fun.(from_vertex, to_vertex, graph) do
@@ -217,7 +213,7 @@ defmodule BitGraph do
     end)
   end
 
-  defp edges_impl(_graph, vertex_index, _edge_info_fun, _direction) when is_nil(vertex_index) do
+  defp edges_impl(_graph, vertex_index, _edge_info_fun, _direction, _opts) when is_nil(vertex_index) do
     MapSet.new()
   end
 
@@ -225,12 +221,12 @@ defmodule BitGraph do
     Map.get(edges, {from, to})
   end
 
-  defp neighbors_impl(graph, vertex_index, :out_edges) do
-    E.out_neighbors(graph, vertex_index)
+  defp neighbors_impl(graph, vertex_index, :out_edges, opts) do
+    E.out_neighbors(graph, vertex_index, opts)
   end
 
-  defp neighbors_impl(graph, vertex_index, :in_edges) do
-    E.in_neighbors(graph, vertex_index)
+  defp neighbors_impl(graph, vertex_index, :in_edges, opts) do
+    E.in_neighbors(graph, vertex_index, opts)
   end
 
   defp edge_vertices(v1, v2, :out_edges) do

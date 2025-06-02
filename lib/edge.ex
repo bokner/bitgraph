@@ -34,27 +34,37 @@ defmodule BitGraph.E do
     edges
   end
 
-  def out_neighbors(graph, vertex) when is_integer(vertex) do
-    Adjacency.row(graph[:adjacency], vertex)
+  def out_neighbors(graph, vertex, opts \\ []) when is_integer(vertex) do
+    neighbor_finder = Keyword.get(opts, :neighbor_finder, default_neighbor_finder())
+    neighbor_finder.(graph, vertex, :out)
   end
 
-  def in_neighbors(graph, vertex) when is_integer(vertex) do
-    Adjacency.column(graph[:adjacency], vertex)
+  def in_neighbors(graph, vertex, opts \\ []) when is_integer(vertex) do
+    neighbor_finder = Keyword.get(opts, :neighbor_finder, default_neighbor_finder())
+    neighbor_finder.(graph, vertex, :in)
   end
 
-  def neighbors(graph, vertex) when is_integer(vertex) do
+  def neighbors(graph, vertex, opts \\ []) when is_integer(vertex) do
     MapSet.union(
-      in_neighbors(graph, vertex),
-      out_neighbors(graph, vertex)
+      in_neighbors(graph, vertex, opts),
+      out_neighbors(graph, vertex, opts)
     )
   end
 
-  def out_degree(graph, vertex) when is_integer(vertex) do
-    out_neighbors(graph, vertex) |> MapSet.size()
+  defp default_neighbor_finder() do
+    fn graph, vertex, :in ->
+      Adjacency.column(graph[:adjacency], vertex)
+      graph, vertex, :out ->
+        Adjacency.row(graph[:adjacency], vertex)
+      end
   end
 
-  def in_degree(graph, vertex) when is_integer(vertex) do
-    in_neighbors(graph, vertex) |> MapSet.size()
+  def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
+    out_neighbors(graph, vertex, opts) |> MapSet.size()
+  end
+
+  def in_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
+    in_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
   def delete_edge(%{adjacency: adjacency, edges: edges} = graph, from, to) when is_integer(from) and is_integer(to) do
