@@ -174,12 +174,12 @@ defmodule BitGraph do
     edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :in_edges, opts)
   end
 
-  def in_neighbors(graph, vertex) do
-    in_edges(graph, vertex, fn from, _to, graph -> V.get_vertex(graph, from) end)
+  def in_neighbors(graph, vertex, opts \\ []) do
+    in_edges(graph, vertex, fn from, _to, graph -> V.get_vertex(graph, from) end, opts)
   end
 
-  def out_neighbors(graph, vertex) do
-    out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to) end)
+  def out_neighbors(graph, vertex, opts \\ []) do
+    out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to) end, opts)
   end
 
   def neighbors(graph, vertex, opts \\ []) do
