@@ -4,7 +4,7 @@ defmodule Bitgraph.MixProject do
   def project do
     [
       app: :bitgraph,
-      version: "0.1.7",
+      version: "0.1.8",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
