@@ -35,7 +35,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       left_partition,
       initial_state(graph, left_partition, opts),
       fn lp_vertex, state_acc ->
-        if state_acc.n == get_matching_count(state_acc) do
+        if state_acc.max_matching_size == get_matching_count(state_acc) do
           {:halt, state_acc}
         else
           {:cont, process_vertex(state_acc, graph, get_vertex_index(graph, lp_vertex))}
@@ -139,7 +139,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       used: Array.new(num_vertices),
       match: Array.new(num_vertices),
       match_count: :counters.new(1, [:atomics]),
-      n: num_vertices,
+      max_matching_size: MapSet.size(left_partition),
       required_size: Keyword.get(opts, :required_size)
     }
     |> apply_fixed_matching(graph, Keyword.get(opts, :fixed_matching, Map.new()))

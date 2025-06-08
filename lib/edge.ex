@@ -51,7 +51,7 @@ defmodule BitGraph.E do
     )
   end
 
-  defp default_neighbor_finder() do
+  def default_neighbor_finder() do
     fn graph, vertex, :in ->
       Adjacency.column(graph[:adjacency], vertex)
       graph, vertex, :out ->
