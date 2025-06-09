@@ -47,6 +47,10 @@ defmodule BitGraph do
     end)
   end
 
+  def strongly_connected?(graph, opts \\ []) do
+    BitGraph.Algorithms.strongly_connected?(graph, opts)
+  end
+
   def default_opts() do
     [max_vertices: 1024]
   end
