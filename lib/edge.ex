@@ -34,20 +34,36 @@ defmodule BitGraph.E do
     edges
   end
 
-  def out_neighbors(graph, vertex, opts \\ []) when is_integer(vertex) do
-    neighbor_finder = Keyword.get(opts, :neighbor_finder, default_neighbor_finder())
+  def out_neighbors(graph, vertex, neighbor_finder \\ default_neighbor_finder())
+
+  def out_neighbors(graph, vertex, opts) when is_list(opts) do
+    out_neighbors(graph, vertex, Keyword.get(opts, :neighbor_finder, default_neighbor_finder()))
+  end
+
+  def out_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
     neighbor_finder.(graph, vertex, :out)
   end
 
-  def in_neighbors(graph, vertex, opts \\ []) when is_integer(vertex) do
-    neighbor_finder = Keyword.get(opts, :neighbor_finder, default_neighbor_finder())
+  def in_neighbors(graph, vertex, neighbor_finder \\ default_neighbor_finder())
+
+  def in_neighbors(graph, vertex, opts) when is_list(opts) do
+    in_neighbors(graph, vertex, Keyword.get(opts, :neighbor_finder, default_neighbor_finder()))
+  end
+
+  def in_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
     neighbor_finder.(graph, vertex, :in)
   end
 
-  def neighbors(graph, vertex, opts \\ []) when is_integer(vertex) do
+  def neighbors(graph, vertex, neighbor_finder \\ default_neighbor_finder())
+
+  def neighbors(graph, vertex, opts) when is_list(opts) do
+    neighbors(graph, vertex, Keyword.get(opts, :neighbor_finder, default_neighbor_finder()))
+  end
+
+  def neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
     MapSet.union(
-      in_neighbors(graph, vertex, opts),
-      out_neighbors(graph, vertex, opts)
+      in_neighbors(graph, vertex, neighbor_finder),
+      out_neighbors(graph, vertex, neighbor_finder)
     )
   end
 
