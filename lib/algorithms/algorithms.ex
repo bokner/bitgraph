@@ -53,7 +53,6 @@ defmodule BitGraph.Algorithms do
   def strong_components(graph, opts \\ []) do
     opts = Keyword.merge(
     [
-      component_handler: fn component, _state -> component end,
       algorithm: :kozaraju
     ], Keyword.put(opts, :vertices, Utils.build_vertex_indices(graph, Keyword.get(opts, :vertices, :all))))
 

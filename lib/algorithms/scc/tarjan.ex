@@ -12,7 +12,6 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
         graph,
         opts \\ []
       ) do
-    #IO.inspect(opts[:component_handler], label: :tarjan_opts)
     (BitGraph.num_vertices(graph) == 0 && []) ||
       graph
       |> Dfs.run(

@@ -34,30 +34,39 @@ defmodule BitGraph.E do
     edges
   end
 
-  def out_neighbors(graph, vertex, neighbor_finder \\ default_neighbor_finder())
+  def out_neighbors(graph, vertex) do
+    out_neighbors(graph, vertex,
+    Keyword.get(graph[:opts], :neighbor_finder, default_neighbor_finder()))
+  end
 
   def out_neighbors(graph, vertex, opts) when is_list(opts) do
-    out_neighbors(graph, vertex, Keyword.get(opts, :neighbor_finder, default_neighbor_finder()))
+    out_neighbors(graph, vertex, get_neighbor_finder(graph, opts))
   end
 
   def out_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
     neighbor_finder.(graph, vertex, :out)
   end
 
-  def in_neighbors(graph, vertex, neighbor_finder \\ default_neighbor_finder())
+  def in_neighbors(graph, vertex) do
+    in_neighbors(graph, vertex,
+    Keyword.get(graph[:opts], :neighbor_finder, default_neighbor_finder()))
+  end
 
   def in_neighbors(graph, vertex, opts) when is_list(opts) do
-    in_neighbors(graph, vertex, Keyword.get(opts, :neighbor_finder, default_neighbor_finder()))
+    in_neighbors(graph, vertex, get_neighbor_finder(graph, opts))
   end
 
   def in_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
     neighbor_finder.(graph, vertex, :in)
   end
 
-  def neighbors(graph, vertex, neighbor_finder \\ default_neighbor_finder())
+  def neighbors(graph, vertex) do
+    neighbors(graph, vertex,
+    Keyword.get(graph[:opts], :neighbor_finder, default_neighbor_finder()))
+  end
 
   def neighbors(graph, vertex, opts) when is_list(opts) do
-    neighbors(graph, vertex, Keyword.get(opts, :neighbor_finder, default_neighbor_finder()))
+    neighbors(graph, vertex, get_neighbor_finder(graph, opts))
   end
 
   def neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
@@ -73,6 +82,10 @@ defmodule BitGraph.E do
       graph, vertex, :out ->
         Adjacency.row(graph[:adjacency], vertex)
       end
+  end
+
+  defp get_neighbor_finder(graph, opts) do
+    Keyword.get(Keyword.merge(graph[:opts], opts), :neighbor_finder, default_neighbor_finder())
   end
 
   def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do

@@ -14,6 +14,7 @@ defmodule BitGraph do
   def new(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
     %{
+      opts: opts,
       vertices: V.init_vertices(opts),
       edges: E.init_edges(opts),
       adjacency: Adjacency.init_adjacency_table(opts[:max_vertices]),
@@ -52,7 +53,10 @@ defmodule BitGraph do
   end
 
   def default_opts() do
-    [max_vertices: 1024]
+    [
+      max_vertices: 1024,
+      neighbor_finder: BitGraph.E.default_neighbor_finder()
+    ]
   end
 
   def add_vertex(graph, vertex, opts \\ []) do
