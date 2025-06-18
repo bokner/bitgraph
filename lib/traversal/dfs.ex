@@ -26,12 +26,10 @@ defmodule BitGraph.Dfs do
         - before (:preorder, default)
         - after (:postorder)
         - before and after (:both)
-  - `neighbor_finder` - the function to find neighbors of given vertex (defaults to BitGraph.E.default_neighbor_finder/0).
-      Check BitGraphTest.NeighborFinder for examples of usage.
   """
 
   def run(graph, opts \\ []) do
-    #initial_state = Keyword.get(opts, :state) || init_dfs(graph, opts)
+    graph = BitGraph.update_opts(graph, opts)
     vertices = build_vertices(graph, Keyword.get(opts, :vertices, :all))
     initial_state = Keyword.get(opts, :state) || (
       case vertices do
@@ -82,7 +80,6 @@ defmodule BitGraph.Dfs do
       ## :postorder - after DFS call
       ## :both - before and after DFS call
       edge_process_order: Keyword.get(opts, :edge_process_order, :preorder),
-      neighbor_finder: Keyword.get(opts, :neighbor_finder, BitGraph.E.default_neighbor_finder()),
       dag: true,
       timer: :counters.new(1, [:atomics]),
       ## Color (white, black or gray)
@@ -100,14 +97,14 @@ defmodule BitGraph.Dfs do
     }
   end
 
-  defp dfs_impl(graph, vertex, %{direction: direction, neighbor_finder: neighbor_finder} = state)
+  defp dfs_impl(graph, vertex, %{direction: direction} = state)
        when is_integer(vertex) do
     time = inc_timer(state)
     Array.put(state[:time_in], vertex, time)
     Array.put(state[:color], vertex, @gray_vertex)
     initial_state = process_vertex(state, vertex, :discovered)
 
-    Enum.reduce_while(vertex_neighbors(graph, vertex, direction, neighbor_finder), initial_state, fn
+    Enum.reduce_while(vertex_neighbors(graph, vertex, direction), initial_state, fn
       neighbor, state_acc ->
         process_edge(graph, state_acc, vertex, neighbor)
     end)
@@ -252,18 +249,18 @@ defmodule BitGraph.Dfs do
     :cont
   end
 
-  defp vertex_neighbors(graph, vertex, :forward, neighbor_finder) do
-    E.out_neighbors(graph, vertex, neighbor_finder)
+  defp vertex_neighbors(graph, vertex, :forward) do
+    E.out_neighbors(graph, vertex)
   end
 
-  defp vertex_neighbors(graph, vertex, :reverse, neighbor_finder) do
-    E.in_neighbors(graph, vertex, neighbor_finder)
+  defp vertex_neighbors(graph, vertex, :reverse) do
+    E.in_neighbors(graph, vertex)
   end
 
-  defp vertex_neighbors(graph, vertex, :both, neighbor_finder) do
+  defp vertex_neighbors(graph, vertex, :both) do
     MapSet.union(
-      vertex_neighbors(graph, vertex, :forward, neighbor_finder),
-      vertex_neighbors(graph, vertex, :reverse, neighbor_finder)
+      vertex_neighbors(graph, vertex, :forward),
+      vertex_neighbors(graph, vertex, :reverse)
     )
   end
 

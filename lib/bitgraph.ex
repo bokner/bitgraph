@@ -42,14 +42,18 @@ defmodule BitGraph do
   end
 
   def strong_components(graph, opts \\ []) do
-    BitGraph.Algorithms.strong_components(graph, opts)
+    graph
+    |> update_opts(opts)
+    |> BitGraph.Algorithms.strong_components(opts)
     |> Enum.map(fn component ->
       MapSet.new(component, fn vertex_idx -> BitGraph.V.get_vertex(graph, vertex_idx) end)
     end)
   end
 
   def strongly_connected?(graph, opts \\ []) do
-    BitGraph.Algorithms.strongly_connected?(graph, opts)
+    graph
+    |> update_opts(opts)
+    |> BitGraph.Algorithms.strongly_connected?(opts)
   end
 
   def default_opts() do
@@ -57,6 +61,18 @@ defmodule BitGraph do
       max_vertices: 1024,
       neighbor_finder: BitGraph.E.default_neighbor_finder()
     ]
+  end
+
+  defp core_opts_names() do
+    [:neighbor_finder]
+  end
+
+  def update_opts(graph, opts) do
+    Map.update!(graph, :opts,
+      fn current_opts ->
+        Keyword.merge(current_opts,
+        Keyword.take(opts, core_opts_names()))
+      end)
   end
 
   def add_vertex(graph, vertex, opts \\ []) do
