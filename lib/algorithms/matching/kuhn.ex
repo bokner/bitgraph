@@ -167,7 +167,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       fn idx, {c, match_acc} = acc ->
         candidate_vertex = BitGraph.V.get_vertex(graph, idx)
 
-        if MapSet.member?(left_partition, candidate_vertex) do
+        if MapSet.member?(left_partition, candidate_vertex) || is_nil(candidate_vertex) do
           ## Ignore left_partition
           {:cont, acc}
         else

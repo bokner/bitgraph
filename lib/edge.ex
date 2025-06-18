@@ -34,10 +34,7 @@ defmodule BitGraph.E do
     edges
   end
 
-  def out_neighbors(graph, vertex) do
-    out_neighbors(graph, vertex,
-    Keyword.get(graph[:opts], :neighbor_finder, default_neighbor_finder()))
-  end
+  def out_neighbors(graph, vertex, opts \\ [])
 
   def out_neighbors(graph, vertex, opts) when is_list(opts) do
     out_neighbors(graph, vertex, get_neighbor_finder(graph, opts))
@@ -47,10 +44,7 @@ defmodule BitGraph.E do
     neighbor_finder.(graph, vertex, :out)
   end
 
-  def in_neighbors(graph, vertex) do
-    in_neighbors(graph, vertex,
-    Keyword.get(graph[:opts], :neighbor_finder, default_neighbor_finder()))
-  end
+  def in_neighbors(graph, vertex, opts \\ [])
 
   def in_neighbors(graph, vertex, opts) when is_list(opts) do
     in_neighbors(graph, vertex, get_neighbor_finder(graph, opts))
@@ -60,10 +54,7 @@ defmodule BitGraph.E do
     neighbor_finder.(graph, vertex, :in)
   end
 
-  def neighbors(graph, vertex) do
-    neighbors(graph, vertex,
-    Keyword.get(graph[:opts], :neighbor_finder, default_neighbor_finder()))
-  end
+  def neighbors(graph, vertex, opts \\ [])
 
   def neighbors(graph, vertex, opts) when is_list(opts) do
     neighbors(graph, vertex, get_neighbor_finder(graph, opts))

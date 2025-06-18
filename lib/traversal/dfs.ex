@@ -36,10 +36,8 @@ defmodule BitGraph.Dfs do
     initial_state = Keyword.get(opts, :state) || (
       case vertices do
         [] -> nil
-        %MapSet{} = set ->
-          MapSet.size(set) > 0 && init_dfs(graph, opts) || nil
-        list when is_list(list) ->
-          init_dfs(graph, opts)
+        list when is_struct(vertices, MapSet) or is_list(vertices) ->
+          Enum.empty?(list) && nil || init_dfs(graph, opts)
         _other ->
           throw({:error, :invalid_vertex_list})
         end
@@ -79,7 +77,7 @@ defmodule BitGraph.Dfs do
       process_vertex_fun:
         Keyword.get(opts, :process_vertex_fun, default_process_vertex_fun())
         |> normalize_process_vertex_fun(),
-      ## Processing order for 'tree' edge:
+      ## Order of processing for 'tree' edge:
       ## :preorder - before DFS call
       ## :postorder - after DFS call
       ## :both - before and after DFS call
