@@ -195,6 +195,7 @@ defmodule BitGraph do
   end
 
   def in_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
+    graph = update_opts(graph, opts)
     edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :in_edges, opts)
   end
 
@@ -211,6 +212,7 @@ defmodule BitGraph do
   end
 
   def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
+    graph = update_opts(graph, opts)
     edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out_edges, opts)
   end
 
