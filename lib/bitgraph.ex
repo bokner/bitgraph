@@ -58,8 +58,7 @@ defmodule BitGraph do
 
   def default_opts() do
     [
-      max_vertices: 1024,
-      neighbor_finder: BitGraph.E.default_neighbor_finder()
+      max_vertices: 1024
     ]
   end
 

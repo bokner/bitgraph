@@ -55,7 +55,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp generate_initial_matching(
-         %{left_partition: left_partition, neighbor_finder: neighbor_finder} = state,
+         %{left_partition: left_partition} = state,
          graph
        ) do
     initial_matching =
@@ -65,7 +65,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
         if in_fixed_matching?(state, vertex_idx) do
           acc
         else
-          Enum.reduce_while(BitGraph.E.neighbors(graph, vertex_idx, neighbor_finder), acc, fn neighbor, acc2 ->
+          Enum.reduce_while(BitGraph.E.neighbors(graph, vertex_idx), acc, fn neighbor, acc2 ->
             if get_match(state, neighbor) == 0 do
               update_match(state, neighbor, vertex_idx)
               increase_matching_count(state)
@@ -140,8 +140,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       match: Array.new(num_vertices),
       match_count: :counters.new(1, [:atomics]),
       max_matching_size: MapSet.size(left_partition),
-      required_size: Keyword.get(opts, :required_size),
-      neighbor_finder: Keyword.get(opts, :neighbor_finder, BitGraph.E.default_neighbor_finder())
+      required_size: Keyword.get(opts, :required_size)
     }
     |> apply_fixed_matching(graph, Keyword.get(opts, :fixed_matching, Map.new()))
     |> generate_initial_matching(graph)
@@ -208,14 +207,14 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     throw({:error, {:vertex_not_in_graph, vertex}})
   end
 
-  defp dfs(graph, vertex, %{used: used, neighbor_finder: neighbor_finder} = state)
+  defp dfs(graph, vertex, %{used: used} = state)
        when is_integer(vertex) do
     if Array.get(used, vertex) == 1 || in_fixed_matching?(state, vertex) do
       false
     else
       Array.put(used, vertex, 1)
 
-      Enum.reduce_while(BitGraph.E.neighbors(graph, vertex, neighbor_finder), false, fn neighbor, _new_match? ->
+      Enum.reduce_while(BitGraph.E.neighbors(graph, vertex), false, fn neighbor, _new_match? ->
         neighbor_match = get_match(state, neighbor)
 
         if neighbor_match == 0 || dfs(graph, neighbor_match, state) do
