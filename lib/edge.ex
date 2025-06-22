@@ -30,8 +30,10 @@ defmodule BitGraph.E do
     Adjacency.get(graph[:adjacency], from, to) == 1
   end
 
-  def edges(%{edges: edges} = _graph) do
-    edges
+  def edges(graph) do
+    graph
+    |> BitGraph.vertices()
+    |> Enum.reduce(MapSet.new(), fn v, acc -> MapSet.union(acc, BitGraph.out_edges(graph, v)) end)
   end
 
   def out_neighbors(graph, vertex, opts \\ [])

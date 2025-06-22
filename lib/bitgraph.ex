@@ -66,6 +66,10 @@ defmodule BitGraph do
     [:neighbor_finder]
   end
 
+  def update_opts(graph, []) do
+    graph
+  end
+
   def update_opts(graph, opts) do
     Map.update!(graph, :opts,
       fn current_opts ->
@@ -186,7 +190,7 @@ defmodule BitGraph do
   end
 
   def num_edges(graph) do
-    E.edges(graph) |> map_size()
+    E.edges(graph) |> MapSet.size()
   end
 
   def edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
