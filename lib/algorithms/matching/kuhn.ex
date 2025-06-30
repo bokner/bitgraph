@@ -132,12 +132,12 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp initial_state(graph, left_partition, opts) do
-    num_vertices = BitGraph.num_vertices(graph)
+    allocated = BitGraph.max_index(graph)
 
     %{
       left_partition: left_partition,
-      used: Array.new(num_vertices),
-      match: Array.new(num_vertices),
+      used: Array.new(allocated),
+      match: Array.new(allocated),
       match_count: :counters.new(1, [:atomics]),
       max_matching_size: MapSet.size(left_partition),
       required_size: Keyword.get(opts, :required_size)

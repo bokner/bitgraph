@@ -93,10 +93,13 @@ defmodule BitGraph do
   end
 
   def delete_vertex(graph, vertex) do
-    vertex_index = V.get_vertex_index(graph, vertex)
-    graph
-    |> E.delete_edges(vertex_index)
-    |> V.delete_vertex(vertex)
+    case V.get_vertex_index(graph, vertex) do
+      nil -> graph
+      vertex_index ->
+        graph
+        |> E.delete_edges(vertex_index)
+        |> V.delete_vertex(vertex)
+      end
   end
 
   def get_vertex(graph, vertex, opts \\ []) do
@@ -116,6 +119,10 @@ defmodule BitGraph do
 
   def vertex_indices(graph) do
     graph[:vertices][:index_to_vertex] |> Map.keys()
+  end
+
+  def max_index(graph) do
+    vertex_indices(graph) |> Enum.max()
   end
 
   def num_vertices(graph) do

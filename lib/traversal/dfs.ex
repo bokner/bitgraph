@@ -64,7 +64,7 @@ defmodule BitGraph.Dfs do
   end
 
   defp init_dfs(graph, opts) do
-    max_index = Enum.max(BitGraph.vertex_indices(graph))
+    max_index = BitGraph.max_index(graph)
 
     %{
       component_top: nil, #root,

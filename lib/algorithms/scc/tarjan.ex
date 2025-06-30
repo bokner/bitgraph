@@ -19,7 +19,7 @@ defmodule BitGraph.Algorithms.SCC.Tarjan do
           [
             process_vertex_fun: fn state, v, event ->
             tarjan_vertex(state, v, event,
-              num_vertices: BitGraph.num_vertices(graph),
+              num_vertices: BitGraph.max_index(graph),
               on_dag_handler: opts[:on_dag_handler],
               component_handler:
                 (opts[:component_handler]  || {fn component, acc -> [component | acc] end, []}
