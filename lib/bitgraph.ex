@@ -215,7 +215,9 @@ defmodule BitGraph do
     edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out, opts)
   end
 
-  def in_neighbors(graph, vertex, _opts \\ []) do
+  def in_neighbors(graph, vertex, opts \\ []) do
+    graph = update_opts(graph, opts)
+
     case V.get_vertex_index(graph, vertex) do
       nil -> MapSet.new()
       vertex_index -> E.in_neighbors(graph, vertex_index)
@@ -223,13 +225,15 @@ defmodule BitGraph do
     |> vertex_set(graph)
   end
 
-    def out_neighbors(graph, vertex, _opts \\ []) do
+  def out_neighbors(graph, vertex, opts \\ []) do
+    graph = update_opts(graph, opts)
+
     case V.get_vertex_index(graph, vertex) do
       nil -> MapSet.new()
       vertex_index -> E.out_neighbors(graph, vertex_index)
     end
     |> vertex_set(graph)
-  end
+end
 
 
   defp vertex_set(vertex_indices, graph) do
