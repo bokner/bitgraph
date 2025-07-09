@@ -185,15 +185,16 @@ defmodule BitGraph do
     end)
   end
 
-  def get_edge(%{edges: edges} = graph, from, to) do
-    Map.get(edges, {
+
+  def get_edge(graph, from, to) do
+    E.get_edge(graph,
       V.get_vertex_index(graph, from),
       V.get_vertex_index(graph, to)
-      })
+    )
   end
 
   def edges(graph) do
-    E.edges(graph) |> Map.values()
+    E.edges(graph) |> Map.values() |> MapSet.new()
   end
 
   def num_edges(graph) do
@@ -206,24 +207,42 @@ defmodule BitGraph do
 
   def in_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
     graph = update_opts(graph, opts)
-    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :in_edges, opts)
-  end
-
-  def in_neighbors(graph, vertex, opts \\ []) do
-    in_edges(graph, vertex, fn from, _to, graph -> V.get_vertex(graph, from) end, opts)
-  end
-
-  def out_neighbors(graph, vertex, opts \\ []) do
-    out_edges(graph, vertex, fn _from, to, graph -> V.get_vertex(graph, to) end, opts)
-  end
-
-  def neighbors(graph, vertex, opts \\ []) do
-    MapSet.union(out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts))
+    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :in, opts)
   end
 
   def out_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
     graph = update_opts(graph, opts)
-    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out_edges, opts)
+    edges_impl(graph, V.get_vertex_index(graph, vertex), edge_fun, :out, opts)
+  end
+
+  def in_neighbors(graph, vertex, _opts \\ []) do
+    case V.get_vertex_index(graph, vertex) do
+      nil -> MapSet.new()
+      vertex_index -> E.in_neighbors(graph, vertex_index)
+    end
+    |> vertex_set(graph)
+  end
+
+    def out_neighbors(graph, vertex, _opts \\ []) do
+    case V.get_vertex_index(graph, vertex) do
+      nil -> MapSet.new()
+      vertex_index -> E.out_neighbors(graph, vertex_index)
+    end
+    |> vertex_set(graph)
+  end
+
+
+  defp vertex_set(vertex_indices, graph) do
+    Enum.reduce(vertex_indices, MapSet.new(), fn vertex_index, acc ->
+      case V.get_vertex(graph, vertex_index) do
+        nil -> acc
+        vertex -> MapSet.put(acc, vertex)
+      end
+    end)
+  end
+
+  def neighbors(graph, vertex, opts \\ []) do
+    MapSet.union(out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts))
   end
 
   def in_degree(graph, vertex, opts \\ []) do
@@ -238,39 +257,34 @@ defmodule BitGraph do
     out_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
-  defp edges_impl(graph, vertex_index, edge_info_fun, direction, opts) when is_integer(vertex_index) do
-    neighbor_indices = neighbors_impl(graph, vertex_index, direction, opts)
-    Enum.reduce(neighbor_indices, MapSet.new(), fn neighbor_index, acc ->
-      {from_vertex, to_vertex} = edge_vertices(vertex_index, neighbor_index, direction)
-      case edge_info_fun.(from_vertex, to_vertex, graph) do
-        nil -> acc
-        edge_info -> MapSet.put(acc, edge_info)
-      end
+  defp edges_impl(graph, vertex_index, edge_info_fun, direction, _opts) when is_integer(vertex_index) do
+    edges = direction == :in && E.in_edges(graph, vertex_index) || E.out_edges(graph, vertex_index)
+    Enum.reduce(edges, MapSet.new(), fn %E{from: from, to: to}, acc ->
+        case edge_info_fun.(from, to, graph) do
+         nil -> acc
+         edge_info -> MapSet.put(acc, edge_info)
+        end
     end)
+    # neighbor_indices = neighbors_impl(graph, vertex_index, direction, opts)
+    # Enum.reduce(neighbor_indices, MapSet.new(), fn neighbor_index, acc ->
+    #   {from_vertex, to_vertex} = edge_vertices(vertex_index, neighbor_index, direction)
+    #   case edge_info_fun.(from_vertex, to_vertex, graph) do
+    #     nil -> acc
+    #     edge_info -> MapSet.put(acc, edge_info)
+    #   end
+    # end)
   end
 
   defp edges_impl(_graph, vertex_index, _edge_info_fun, _direction, _opts) when is_nil(vertex_index) do
     MapSet.new()
   end
 
-  defp default_edge_info(from, to, %{edges: edges} = _graph) do
-    Map.get(edges, {from, to})
+  defp default_edge_info(from, to, %{edges: edges} = _graph) when is_integer(from) and is_integer(to) do
+    Map.get(edges, {from, to}, E.new(from, to))
   end
 
-  defp neighbors_impl(graph, vertex_index, :out_edges, opts) do
-    E.out_neighbors(graph, vertex_index, opts)
-  end
-
-  defp neighbors_impl(graph, vertex_index, :in_edges, opts) do
-    E.in_neighbors(graph, vertex_index, opts)
-  end
-
-  defp edge_vertices(v1, v2, :out_edges) do
-    {v1, v2}
-  end
-
-  defp edge_vertices(v1, v2, :in_edges) do
-    {v2, v1}
+  defp default_edge_info(from, to, graph) do
+    default_edge_info(V.get_vertex_index(graph, from), V.get_vertex_index(graph, to), graph)
   end
 
 end

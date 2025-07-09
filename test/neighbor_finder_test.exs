@@ -3,10 +3,75 @@ defmodule BitGraphTest.NeighborFinder do
 
   alias BitGraph.Algorithms.Matching.Kuhn
 
-  test "neighbor finder function" do
-    ## Complete bipartite graph with left -> right edges
+  test "neighbor_finder: neighbors and edges" do
+    ## Buid bipartite graph with edges oriented from left partition to right partition
+    partition_size = 3
     graph =
-      for left <- 1..3, right <- 1..3, reduce: BitGraph.new() do
+      Enum.reduce(1..partition_size, BitGraph.new(), fn idx, g_acc ->
+          BitGraph.add_vertex(g_acc, {:L, idx})
+      end) |> then(fn g ->
+          Enum.reduce(1..partition_size, g, fn idx, g_acc ->
+          BitGraph.add_vertex(g_acc, {:R, idx})
+        end)
+      end)
+
+
+    virtual_graph = BitGraph.update_opts(graph, neighbor_finder: bipartite_neighbor_finder(partition_size))
+
+    ## neighbors and degrees
+    assert Enum.all?(1..partition_size, fn idx ->
+      BitGraph.out_neighbors(virtual_graph, {:L, idx}) ==
+        MapSet.new(1..partition_size, fn idx -> {:R, idx} end)
+
+      &&
+      BitGraph.out_degree(virtual_graph, {:L, idx}) == partition_size
+
+      &&
+      BitGraph.in_neighbors(virtual_graph, {:R, idx}) ==
+        MapSet.new(1..partition_size, fn idx -> {:L, idx} end)
+
+      &&
+      BitGraph.in_degree(virtual_graph, {:R, idx}) == partition_size
+
+
+      && Enum.empty?(
+        BitGraph.out_neighbors(virtual_graph, {:R, idx})
+      )
+
+      && BitGraph.out_degree(virtual_graph, {:R, idx}) == 0
+
+      && Enum.empty?(
+        BitGraph.in_neighbors(virtual_graph, {:L, idx})
+      )
+
+      && BitGraph.in_degree(virtual_graph, {:L, idx}) == 0
+
+    end)
+
+    ## edges
+    assert Enum.all?(1..partition_size, fn idx ->
+      BitGraph.out_edges(virtual_graph, {:L, idx}) ==
+        MapSet.new(partition_size + 1..partition_size * 2, fn neighbor_idx ->
+          BitGraph.E.new(idx, neighbor_idx)
+        end)
+      &&
+      BitGraph.in_edges(virtual_graph, {:L, idx}) == MapSet.new()
+      &&
+      BitGraph.in_edges(virtual_graph, {:R, idx}) ==
+        MapSet.new(1..partition_size, fn neighbor_idx ->
+          BitGraph.E.new(neighbor_idx, idx + partition_size)
+        end)
+      &&
+      BitGraph.out_edges(virtual_graph, {:R, idx}) == MapSet.new()
+    end)
+
+  end
+
+  test "neighbor finder on DFS" do
+    ## Complete bipartite graph with left -> right edges
+    partition_size = 3
+    graph =
+      for left <- 1..partition_size, right <- 1..partition_size, reduce: BitGraph.new() do
         acc ->
           BitGraph.add_edge(acc, {:L, left}, {:R, right})
       end
@@ -19,13 +84,32 @@ defmodule BitGraphTest.NeighborFinder do
 
     ## We now buld the neighbor finder that intperprets
     ## edges in bipartite matching as oriented from right to left partition
-    neighbor_finder_fun = build_neighbor_finder(graph)
+    neighbor_finder_fun = matching_neighbor_finder(graph, partition_size)
 
     assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_finder_fun)
   end
 
-  defp build_neighbor_finder(graph) do
-    %{matching: left_to_right_matching} = Kuhn.run(graph, Enum.map(1..3, fn idx -> {:L, idx} end))
+  defp bipartite_neighbor_finder(partition_size) do
+    left_partition = 1..partition_size
+    right_partition = (partition_size + 1)..(2 * partition_size)
+
+    fn _graph, vertex_index, direction ->
+      cond do
+        vertex_index in left_partition && direction == :out ->
+          MapSet.new(right_partition)
+        vertex_index in left_partition && direction == :in ->
+          MapSet.new()
+        vertex_index in right_partition && direction == :out ->
+          MapSet.new()
+        vertex_index in right_partition && direction == :in ->
+          MapSet.new(left_partition)
+      end
+    end
+
+  end
+
+  defp matching_neighbor_finder(graph, partition_size) do
+    %{matching: left_to_right_matching} = Kuhn.run(graph, Enum.map(1..partition_size, fn idx -> {:L, idx} end))
 
     right_to_left_matching = Map.new(left_to_right_matching, fn {l, r} -> {r, l} end)
 

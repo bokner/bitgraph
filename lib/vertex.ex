@@ -33,6 +33,10 @@ defmodule BitGraph.V do
     get_in(graph, [:vertices, :index_to_vertex, vertex_idx] ++ aux)
   end
 
+  def get_vertex(graph, vertex, aux) do
+    get_vertex(graph, get_in(graph, [:vertices, :id_to_index, vertex]), aux)
+  end
+
   def update_vertex(_graph, vertex_idx, _aux) when is_nil(vertex_idx) do
     nil
   end

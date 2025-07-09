@@ -30,6 +30,10 @@ defmodule BitGraph.E do
     Adjacency.get(graph[:adjacency], from, to) == 1
   end
 
+  def get_edge(%{edges: edges} = _graph, from, to) when is_integer(from) and is_integer(to) do
+    Map.get(edges, {from, to}, new(from, to))
+  end
+
   def edges(graph) do
     graph
     |> BitGraph.vertices()
@@ -68,6 +72,28 @@ defmodule BitGraph.E do
       out_neighbors(graph, vertex, neighbor_finder)
     )
   end
+
+
+  def in_edges(graph, to, opts \\ []) do
+    MapSet.new(in_neighbors(graph, to, opts),
+      fn neighbor -> get_edge(graph, neighbor, to) end
+    )
+  end
+
+  def out_edges(graph, from, opts \\ []) do
+    MapSet.new(out_neighbors(graph, from, opts),
+      fn neighbor -> get_edge(graph, from, neighbor) end
+    )
+  end
+
+  def edges(graph, vertex, opts \\ []) do
+    MapSet.union(
+      in_edges(graph, vertex, opts),
+      out_edges(graph, vertex, opts)
+    )
+  end
+
+
 
   def default_neighbor_finder() do
     fn graph, vertex, :in ->
