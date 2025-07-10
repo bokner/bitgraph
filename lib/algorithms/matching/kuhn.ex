@@ -166,8 +166,9 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
       fn idx, {c, match_acc} = acc ->
         candidate_vertex = BitGraph.V.get_vertex(graph, idx)
 
-        if MapSet.member?(left_partition, candidate_vertex) || is_nil(candidate_vertex) do
-          ## Ignore left_partition
+        if is_nil(candidate_vertex) || !adjacent_to_left_partition?(graph, candidate_vertex, left_partition) do
+          ## Ignore left_partition and the vertices in the right partition that are not adjacent to
+          ## any of the vertices of left partition.
           {:cont, acc}
         else
           case get_match(state, idx) do
@@ -225,5 +226,11 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
         end
       end)
     end
+  end
+
+  defp adjacent_to_left_partition?(graph, vertex, left_partition_vertices) do
+    Enum.any?(BitGraph.neighbors(graph, vertex), fn neighbor ->
+      neighbor in left_partition_vertices
+    end)
   end
 end
