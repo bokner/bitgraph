@@ -194,7 +194,7 @@ defmodule BitGraph do
   end
 
   def edges(graph) do
-    E.edges(graph) |> Map.values() |> MapSet.new()
+    E.edges(graph)
   end
 
   def num_edges(graph) do
