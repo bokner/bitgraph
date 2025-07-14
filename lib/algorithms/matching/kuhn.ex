@@ -31,14 +31,13 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   def run(graph, left_partition, opts) when is_struct(left_partition, MapSet) do
-    Enum.reduce_while(
-      left_partition,
-      initial_state(graph, left_partition, opts),
-      fn lp_vertex, state_acc ->
+    initial_state = initial_state(graph, left_partition, opts)
+    Enum.reduce_while(initial_state.left_partition_indices, initial_state,
+      fn lp_vertex_index, state_acc ->
         if state_acc.max_matching_size == get_matching_count(state_acc) do
           {:halt, state_acc}
         else
-          {:cont, process_vertex(state_acc, graph, get_vertex_index(graph, lp_vertex))}
+          {:cont, process_vertex(state_acc, graph, lp_vertex_index)}
         end
       end
     )
@@ -55,21 +54,19 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp generate_initial_matching(
-         %{left_partition: left_partition} = state,
+         %{left_partition_indices: left_partition_indices} = state,
          graph
        ) do
     initial_matching =
-      Enum.reduce(left_partition, MapSet.new(), fn lp_vertex, acc ->
-        vertex_idx = get_vertex_index(graph, lp_vertex)
-
-        if in_fixed_matching?(state, vertex_idx) do
+      Enum.reduce(left_partition_indices, MapSet.new(), fn lp_vertex_idx, acc ->
+        if in_fixed_matching?(state, lp_vertex_idx) do
           acc
         else
-          Enum.reduce_while(BitGraph.E.neighbors(graph, vertex_idx), acc, fn neighbor, acc2 ->
+          Enum.reduce_while(BitGraph.E.neighbors(graph, lp_vertex_idx), acc, fn neighbor, acc2 ->
             if get_match(state, neighbor) == 0 do
-              update_match(state, neighbor, vertex_idx)
+              update_match(state, neighbor, lp_vertex_idx)
               increase_matching_count(state)
-              {:halt, MapSet.put(acc2, vertex_idx)}
+              {:halt, MapSet.put(acc2, lp_vertex_idx)}
             else
               {:cont, acc2}
             end
@@ -80,13 +77,13 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     Map.put(state, :initially_matched, initial_matching)
   end
 
-  defp apply_fixed_matching(%{left_partition: left_partition} = state, graph, fixed_matching) do
+  defp apply_fixed_matching(%{left_partition_indices: left_partition_indices} = state, graph, fixed_matching) do
     indexed_fixed_matching =
       Map.new(fixed_matching || Map.new(), fn {left_vertex, right_vertex} ->
-        MapSet.member?(left_partition, left_vertex) ||
+        left_idx = get_vertex_index(graph, left_vertex)
+        MapSet.member?(left_partition_indices, left_idx) ||
           throw({:error, {:not_in_left_partition, left_vertex}})
 
-        left_idx = get_vertex_index(graph, left_vertex)
         right_idx = get_vertex_index(graph, right_vertex)
 
         case get_match(state, right_idx) do
@@ -136,6 +133,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
 
     %{
       left_partition: left_partition,
+      left_partition_indices: MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end),
       used: Array.new(allocated),
       match: Array.new(allocated),
       match_count: :counters.new(1, [:atomics]),
@@ -159,27 +157,25 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     end
   end
 
-  defp get_matching_impl(%{left_partition: left_partition, match: match} = state, graph) do
+  defp get_matching_impl(%{left_partition_indices: left_partition_indices, match: match} = state, graph) do
     Enum.reduce_while(
       1..Array.size(match),
       {0, %{matching: Map.new(), free: MapSet.new()}},
-      fn idx, {c, match_acc} = acc ->
-        candidate_vertex = BitGraph.V.get_vertex(graph, idx)
-
-        if is_nil(candidate_vertex)
-          || MapSet.member?(left_partition, candidate_vertex)
-          || !adjacent_to_left_partition?(graph, candidate_vertex, left_partition)
+      fn candidate_vertex_idx, {c, match_acc} = acc ->
+        if MapSet.member?(left_partition_indices, candidate_vertex_idx)
         do
           ## Ignore left_partition and the vertices in the right partition that are not adjacent to
           ## any of the vertices of left partition.
           {:cont, acc}
         else
-          case get_match(state, idx) do
+          case get_match(state, candidate_vertex_idx) do
             value when value == 0 ->
               {:cont,
                {c,
+                !adjacent_to_left_partition?(graph, candidate_vertex_idx, left_partition_indices) && match_acc ||
+
                 Map.update!(match_acc, :free, fn existing ->
-                  MapSet.put(existing, candidate_vertex)
+                  MapSet.put(existing, BitGraph.V.get_vertex(graph, candidate_vertex_idx))
                 end)}}
 
             value ->
@@ -188,7 +184,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
                  put_in(
                    match_acc,
                    [:matching, BitGraph.V.get_vertex(graph, value)],
-                   candidate_vertex
+                    BitGraph.V.get_vertex(graph, candidate_vertex_idx)
                  )}
 
               {:cont, acc}
@@ -231,7 +227,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     end
   end
 
-  defp adjacent_to_left_partition?(graph, vertex, left_partition) do
-    MapSet.subset?(BitGraph.in_neighbors(graph, vertex), left_partition)
+  defp adjacent_to_left_partition?(graph, vertex_index, left_partition) do
+    !MapSet.disjoint?(left_partition, BitGraph.E.neighbors(graph, vertex_index))
   end
 end
