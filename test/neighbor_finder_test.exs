@@ -7,7 +7,7 @@ defmodule BitGraphTest.NeighborFinder do
     ## Buid bipartite graph with edges oriented from left partition to right partition
     partition_size = 3
     graph =
-      Enum.reduce(1..partition_size, BitGraph.new(), fn idx, g_acc ->
+      Enum.reduce(1..partition_size, BitGraph.new(allocate_adjacency_table?: false), fn idx, g_acc ->
           BitGraph.add_vertex(g_acc, {:L, idx})
       end) |> then(fn g ->
           Enum.reduce(1..partition_size, g, fn idx, g_acc ->
@@ -15,6 +15,9 @@ defmodule BitGraphTest.NeighborFinder do
         end)
       end)
 
+    ## Note that we have requested not to allocate adjacency table.
+    %{adjacency: %{bit_vector: bit_vector}} = graph
+    refute bit_vector
 
     virtual_graph = BitGraph.update_opts(graph, neighbor_finder: bipartite_neighbor_finder(partition_size))
 

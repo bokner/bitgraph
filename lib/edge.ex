@@ -115,11 +115,19 @@ defmodule BitGraph.E do
     in_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
+  def delete_edge(%{adjacency: %{bit_vector:  false}} = graph, _from, _to) do
+    graph
+  end
+
   def delete_edge(%{adjacency: adjacency, edges: edges} = graph, from, to) when is_integer(from) and is_integer(to) do
     Adjacency.clear(adjacency, from, to)
     edges
     |> Map.delete({from, to})
     |> then(fn updated_edges -> Map.put(graph, :edges, updated_edges) end)
+  end
+
+  def delete_edges(%{adjacency: %{bit_vector:  false}} = graph, _vertex) do
+    graph
   end
 
   def delete_edges(%{adjacency: adjacency} = graph, vertex) when is_integer(vertex) do

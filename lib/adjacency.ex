@@ -1,12 +1,21 @@
 defmodule BitGraph.Adjacency do
 
-  def init_adjacency_table(max_vertices \\ 1024) do
-    bit_vector = allocate(max_vertices)
+  def init_adjacency_table(opts \\ []) do
+    opts = Keyword.merge(default_opts(), opts)
+    max_vertices = Keyword.get(opts, :max_vertices)
+    allocate? = Keyword.get(opts, :allocate_adjacency_table?)
 
     %{
-      bit_vector: bit_vector,
+      bit_vector: allocate? && allocate(max_vertices),
       table_dimension: max_vertices
     }
+  end
+
+  defp default_opts() do
+    [
+      max_vertices: 1024,
+      allocate_adjacency_table?: true
+    ]
   end
 
   ## Allocate a square matrix for adjacency table

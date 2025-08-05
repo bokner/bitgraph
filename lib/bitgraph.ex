@@ -17,7 +17,7 @@ defmodule BitGraph do
       opts: opts,
       vertices: V.init_vertices(opts),
       edges: E.init_edges(opts),
-      adjacency: Adjacency.init_adjacency_table(opts[:max_vertices]),
+      adjacency: Adjacency.init_adjacency_table(opts),
       owner: self()
     }
   end
