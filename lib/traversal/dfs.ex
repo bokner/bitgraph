@@ -101,15 +101,27 @@ defmodule BitGraph.Dfs do
 
   defp dfs_impl(graph, vertex, %{direction: direction} = state)
        when is_integer(vertex) do
+
+    initial_state = init_vertex_processing(state, vertex)
+    neighbor_iterator = vertex_neighbors(graph, vertex, direction)
+    |> Iterable.Peeker.new()
+
+    iterate(neighbor_iterator, initial_state,
+      fn neighbor, acc ->
+        process_edge(graph, acc, vertex, neighbor)
+      end)
+    |> finalize_vertex_processing(vertex)
+  end
+
+  defp init_vertex_processing(state, vertex) do
     time = inc_timer(state)
     Array.put(state[:time_in], vertex, time)
     Array.put(state[:color], vertex, @gray_vertex)
-    initial_state = process_vertex(state, vertex, :discovered)
+    process_vertex(state, vertex, :discovered)
+  end
 
-    neighbor_iterator = vertex_neighbors(graph, vertex, direction)
-    |> Iterable.Peeker.new()
-    
-    iterate(neighbor_iterator, initial_state, graph, vertex)
+  defp finalize_vertex_processing(state, vertex) do
+    state
     |> tap(fn _ ->
       Array.put(state[:time_out], vertex, inc_timer(state))
       Array.put(state[:color], vertex, @black_vertex)
@@ -117,13 +129,13 @@ defmodule BitGraph.Dfs do
     |> process_vertex(vertex, :processed)
   end
 
-  defp iterate(iterator, acc, graph, vertex) do
+  defp iterate(iterator, acc, process_fun) do
     case Iterable.next(iterator) do
       :done -> acc
       {:ok, neighbor, iterator} ->
-        case process_edge(graph, acc, vertex, neighbor) do
+        case process_fun.(neighbor, acc) do
           {:cont, new_acc} ->
-            iterate(iterator, new_acc, graph, vertex)
+            iterate(iterator, new_acc, process_fun)
           {:halt, new_acc} ->
             new_acc
         end
