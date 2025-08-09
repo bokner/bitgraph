@@ -2,6 +2,8 @@ defmodule BitGraph.Dfs do
   alias BitGraph.E
   alias BitGraph.Array
 
+  alias Iter.Iterable
+
   @moduledoc """
   Depth-first search.
   Implementation roughly follows
@@ -104,15 +106,28 @@ defmodule BitGraph.Dfs do
     Array.put(state[:color], vertex, @gray_vertex)
     initial_state = process_vertex(state, vertex, :discovered)
 
-    Enum.reduce_while(vertex_neighbors(graph, vertex, direction), initial_state, fn
-      neighbor, state_acc ->
-        process_edge(graph, state_acc, vertex, neighbor)
-    end)
+    neighbor_iterator = vertex_neighbors(graph, vertex, direction)
+    |> Iterable.Peeker.new()
+    
+    iterate(neighbor_iterator, initial_state, graph, vertex)
     |> tap(fn _ ->
       Array.put(state[:time_out], vertex, inc_timer(state))
       Array.put(state[:color], vertex, @black_vertex)
     end)
     |> process_vertex(vertex, :processed)
+  end
+
+  defp iterate(iterator, acc, graph, vertex) do
+    case Iterable.next(iterator) do
+      :done -> acc
+      {:ok, neighbor, iterator} ->
+        case process_edge(graph, acc, vertex, neighbor) do
+          {:cont, new_acc} ->
+            iterate(iterator, new_acc, graph, vertex)
+          {:halt, new_acc} ->
+            new_acc
+        end
+    end
   end
 
   defp inc_timer(%{timer: timer} = _state) do

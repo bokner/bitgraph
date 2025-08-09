@@ -27,6 +27,7 @@ defmodule Bitgraph.MixProject do
       {:arrays, "~> 2.1"},
       {:arrays_aja, "~> 0.2.0"},
       {:math, "~> 0.7.0", only: :test},
+      {:iterex, "~> 0.1"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev], runtime: false},
       {:replbug, "~> 1.0.2", only: :dev}
