@@ -3,6 +3,7 @@ defmodule BitGraph.Dfs do
   alias BitGraph.Array
 
   alias Iter.Iterable
+  import BitGraph.Traversal.Utils
 
   @moduledoc """
   Depth-first search.
@@ -31,7 +32,7 @@ defmodule BitGraph.Dfs do
   """
 
   def run(graph, opts \\ []) do
-    graph = BitGraph.update_opts(graph, opts)
+    graph = update_graph_opts(graph, opts)
     vertices = build_vertices(graph, Keyword.get(opts, :vertices, :all))
     initial_state = Keyword.get(opts, :state) || (
       case vertices do
@@ -50,6 +51,14 @@ defmodule BitGraph.Dfs do
       else
         state_acc
       end
+    end)
+  end
+
+  defp update_graph_opts(graph, opts) do
+    BitGraph.update_opts(graph, opts)
+    |> then(fn g ->
+      BitGraph.get_opts(g)[:neighbor_finder] && g
+      || BitGraph.update_opts(g, neighbor_finder: E.default_neighbor_iterator())
     end)
   end
 
@@ -103,8 +112,7 @@ defmodule BitGraph.Dfs do
        when is_integer(vertex) do
 
     initial_state = init_vertex_processing(state, vertex)
-    neighbor_iterator = vertex_neighbors(graph, vertex, direction)
-    |> Iterable.Peeker.new()
+    neighbor_iterator = vertex_neighbors_iterator(graph, vertex, direction)
 
     iterate(neighbor_iterator, initial_state,
       fn neighbor, acc ->
@@ -274,6 +282,20 @@ defmodule BitGraph.Dfs do
 
   defp to_reduce_while_result(_) do
     :cont
+  end
+
+  defp vertex_neighbors_iterator(graph, vertex, type) when type in [:forward, :reverse] do
+    vertex_neighbors(graph, vertex, type)
+    |> to_iterator()
+  end
+
+  defp vertex_neighbors_iterator(graph, vertex, :both) do
+    Iterable.concat(
+      [
+      vertex_neighbors_iterator(graph, vertex, :forward),
+      vertex_neighbors_iterator(graph, vertex, :reverse)
+      ]
+    )
   end
 
   defp vertex_neighbors(graph, vertex, :forward) do

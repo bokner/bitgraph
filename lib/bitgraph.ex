@@ -51,9 +51,7 @@ defmodule BitGraph do
   end
 
   def strongly_connected?(graph, opts \\ []) do
-    graph
-    |> update_opts(opts)
-    |> BitGraph.Algorithms.strongly_connected?(opts)
+    BitGraph.Algorithms.strongly_connected?(graph, opts)
   end
 
   def default_opts() do
@@ -64,6 +62,10 @@ defmodule BitGraph do
 
   defp core_opts_names() do
     [:neighbor_finder]
+  end
+
+  def get_opts(graph) do
+    graph[:opts]
   end
 
   def update_opts(graph, []) do

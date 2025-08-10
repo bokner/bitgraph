@@ -11,4 +11,5 @@ defmodule BitGraph.Common do
       E.edge?(graph, Enum.at(circuit, idx), Enum.at(circuit, idx + 1))
     end)
   end
+
 end

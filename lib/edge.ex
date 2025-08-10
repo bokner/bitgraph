@@ -43,7 +43,7 @@ defmodule BitGraph.E do
   def out_neighbors(graph, vertex, opts \\ [])
 
   def out_neighbors(graph, vertex, opts) when is_list(opts) do
-    out_neighbors(graph, vertex, get_neighbor_finder(graph, opts))
+    out_neighbors(graph, vertex, get_neighbor_finder(graph, opts, default_neighbor_finder()))
   end
 
   def out_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
@@ -53,7 +53,7 @@ defmodule BitGraph.E do
   def in_neighbors(graph, vertex, opts \\ [])
 
   def in_neighbors(graph, vertex, opts) when is_list(opts) do
-    in_neighbors(graph, vertex, get_neighbor_finder(graph, opts))
+    in_neighbors(graph, vertex, get_neighbor_finder(graph, opts, default_neighbor_finder()))
   end
 
   def in_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
@@ -63,7 +63,7 @@ defmodule BitGraph.E do
   def neighbors(graph, vertex, opts \\ [])
 
   def neighbors(graph, vertex, opts) when is_list(opts) do
-    neighbors(graph, vertex, get_neighbor_finder(graph, opts))
+    neighbors(graph, vertex, get_neighbor_finder(graph, opts, default_neighbor_finder()))
   end
 
   def neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
@@ -94,8 +94,9 @@ defmodule BitGraph.E do
   end
 
 
+  def default_neighbor_finder(finder_type \\ :enum)
 
-  def default_neighbor_finder() do
+  def default_neighbor_finder(:enum) do
     fn graph, vertex, :in ->
       Adjacency.column(graph[:adjacency], vertex)
       graph, vertex, :out ->
@@ -103,8 +104,22 @@ defmodule BitGraph.E do
       end
   end
 
-  defp get_neighbor_finder(graph, opts) do
-    Keyword.get(Keyword.merge(graph[:opts], opts), :neighbor_finder, default_neighbor_finder())
+  def default_neighbor_finder(:iterable) do
+    fn graph, vertex, :in ->
+      Adjacency.column_iterator(graph[:adjacency], vertex)
+      graph, vertex, :out ->
+        Adjacency.row_iterator(graph[:adjacency], vertex)
+      end
+  end
+
+  def default_neighbor_iterator() do
+    default_neighbor_finder(:iterable)
+  end
+
+  def get_neighbor_finder(graph, opts, default \\ nil) do
+    Keyword.get(opts, :neighbor_finder) ||
+      BitGraph.get_opts(graph)[:neighbor_finder]
+      || default
   end
 
   def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do

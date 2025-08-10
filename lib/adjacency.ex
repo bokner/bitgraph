@@ -66,41 +66,40 @@ defmodule BitGraph.Adjacency do
     0
   end
 
-  def row(
+  def row(table, row) do
+    row_iterator(table, row)
+    |> Iter.Iterable.to_list()
+    |> MapSet.new()
+  end
+
+  def row_iterator(
         %{
           table_dimension: table_dimension
         } = table, row
       ) when is_integer(row) do
-    Enum.reduce(1..table_dimension, MapSet.new(), fn j, acc ->
-      if get(table, row, j) == 1 do
-        MapSet.put(acc, j)
-      else
-        acc
-      end
-    end)
-  end
-
-  def row(_adjacency, _row) do
-    MapSet.new()
+        Iter.Iterable.Filterer.new(1..table_dimension,
+          fn j -> get(table, row, j) == 1
+      end)
   end
 
   def column(
-    %{
-      table_dimension: table_dimension
-    } = table, column
-  ) when is_integer(column) do
-    Enum.reduce(1..table_dimension, MapSet.new(), fn j, acc ->
-      if get(table, j, column) == 1 do
-        MapSet.put(acc, j)
-      else
-        acc
-      end
-    end)
+    table, column
+  ) do
+    column_iterator(table, column)
+    |> Iter.Iterable.to_list()
+    |> MapSet.new()
   end
 
-  def column(_adjacency, _row) do
-    MapSet.new()
+  def column_iterator(
+        %{
+          table_dimension: table_dimension
+        } = table, column
+      ) when is_integer(column) do
+        Iter.Iterable.Filterer.new(1..table_dimension,
+          fn i -> get(table, i, column) == 1
+      end)
   end
+
 
   def copy(%{bit_vector: {:bit_vector, source_ref} = _bit_vector, table_dimension: dimension} = adjacency, edges \\ nil) do
       vector_copy = {:bit_vector, target_ref} = allocate(dimension)
