@@ -14,9 +14,5 @@ defmodule BitGraph.Traversal.Utils do
     build_vertex_indices(graph, [vertex])
   end
 
-  def to_iterator(any, iterator \\ Iter.Iterable.Peeker) do
-    is_struct(any, Iter) && any || iterator.new(any)
-  end
-
 
 end

@@ -3,7 +3,7 @@ defmodule BitGraph.Dfs do
   alias BitGraph.Array
 
   alias Iter.Iterable
-  import BitGraph.Traversal.Utils
+  import BitGraph.Common
 
   @moduledoc """
   Depth-first search.

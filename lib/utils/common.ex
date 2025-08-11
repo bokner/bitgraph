@@ -1,6 +1,8 @@
 defmodule BitGraph.Common do
   alias BitGraph.{V, E}
 
+  alias Iter.Iterable
+
   def vertex_indices_to_ids(graph, indices) do
     Enum.map(indices, fn idx -> V.get_vertex(graph, idx) end)
   end
@@ -11,5 +13,15 @@ defmodule BitGraph.Common do
       E.edge?(graph, Enum.at(circuit, idx), Enum.at(circuit, idx + 1))
     end)
   end
+
+  def to_iterator(any, iterator \\ Iterable.Peeker) do
+    is_struct(any, Iter) && any || iterator.new(any)
+  end
+
+  def to_enum(any) do
+    is_struct(any, Iter) && Iterable.to_list(any) || any
+  end
+
+
 
 end

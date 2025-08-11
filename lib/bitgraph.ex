@@ -10,6 +10,7 @@ defmodule BitGraph do
   @type t :: map()
 
   alias BitGraph.{V, E, Adjacency}
+  import BitGraph.Common
 
   def new(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
@@ -235,11 +236,12 @@ defmodule BitGraph do
       vertex_index -> E.out_neighbors(graph, vertex_index)
     end
     |> vertex_set(graph)
-end
-
+  end
 
   defp vertex_set(vertex_indices, graph) do
-    Enum.reduce(vertex_indices, MapSet.new(), fn vertex_index, acc ->
+    vertex_indices
+    |> to_enum()
+    |> Enum.reduce(MapSet.new(), fn vertex_index, acc ->
       case V.get_vertex(graph, vertex_index) do
         nil -> acc
         vertex -> MapSet.put(acc, vertex)
