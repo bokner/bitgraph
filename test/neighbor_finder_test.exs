@@ -71,7 +71,7 @@ defmodule BitGraphTest.NeighborFinder do
   end
 
   test "neighbor finder on DFS" do
-    ## Complete bipartite graph with left -> right edges
+    ## Build complete bipartite graph
     partition_size = 3
     graph =
       for left <- 1..partition_size, right <- 1..partition_size, reduce: BitGraph.new() do
@@ -85,11 +85,29 @@ defmodule BitGraphTest.NeighborFinder do
     ## The same graph with matching edges oriented from right to left partition
     ## will form the cycle
 
-    ## We now buld the neighbor finder that intperprets
+    ## We now build the neighbor finder that intperprets
     ## edges in bipartite matching as oriented from right to left partition
     neighbor_finder_fun = matching_neighbor_finder(graph, partition_size)
 
     assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_finder_fun)
+  end
+
+  test "Iterable neighbor finder on DFS" do
+    ## Build complete bipartite graph with left -> right edges
+    partition_size = 3
+    graph =
+      for left <- 1..partition_size, right <- 1..partition_size, reduce: BitGraph.new() do
+        acc ->
+          BitGraph.add_edge(acc, {:L, left}, {:R, right})
+      end
+    neighbor_iterator = iterating_neighbor_finder(
+      matching_neighbor_finder(graph, partition_size)
+    )
+
+    ## Same as in the previous tes, but with iterable neighbor finder.
+    assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_iterator)
+
+
   end
 
   defp bipartite_neighbor_finder(partition_size) do
@@ -127,6 +145,13 @@ defmodule BitGraphTest.NeighborFinder do
         right_to_left_matching,
         direction
       )
+    end
+  end
+
+  defp iterating_neighbor_finder(neighbor_finder) do
+    fn graph, vertex_index, direction ->
+      neighbor_finder.(graph, vertex_index, direction)
+      |> Iter.IntoIterable.into_iterable()
     end
   end
 

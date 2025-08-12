@@ -14,8 +14,8 @@ defmodule BitGraph.Common do
     end)
   end
 
-  def to_iterator(any, iterator \\ Iterable.Peeker) do
-    is_struct(any, Iter) && any || iterator.new(any)
+  def to_iterator(any) do
+    Iter.IntoIterable.into_iterable(any)
   end
 
   def to_enum(any) do
