@@ -62,7 +62,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
         if in_fixed_matching?(state, lp_vertex_idx) do
           acc
         else
-          Enum.reduce_while(BitGraph.E.neighbors(graph, lp_vertex_idx), acc, fn neighbor, acc2 ->
+          Enum.reduce_while(V.neighbors(graph, lp_vertex_idx), acc, fn neighbor, acc2 ->
             if get_match(state, neighbor) == 0 do
               update_match(state, neighbor, lp_vertex_idx)
               increase_matching_count(state)
@@ -214,7 +214,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     else
       Array.put(used, vertex, 1)
 
-      Enum.reduce_while(BitGraph.E.neighbors(graph, vertex), false, fn neighbor, _new_match? ->
+      Enum.reduce_while(V.neighbors(graph, vertex), false, fn neighbor, _new_match? ->
         neighbor_match = get_match(state, neighbor)
 
         if neighbor_match == 0 || dfs(graph, neighbor_match, state) do
@@ -228,6 +228,6 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp adjacent_to_left_partition?(graph, vertex_index, left_partition) do
-    !MapSet.disjoint?(left_partition, BitGraph.E.neighbors(graph, vertex_index))
+    !MapSet.disjoint?(left_partition, V.neighbors(graph, vertex_index))
   end
 end

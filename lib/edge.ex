@@ -1,4 +1,6 @@
 defmodule BitGraph.E do
+
+  alias BitGraph.V
   defstruct from: nil,
             to: nil,
             opts: []
@@ -40,48 +42,15 @@ defmodule BitGraph.E do
     |> Enum.reduce(MapSet.new(), fn v, acc -> MapSet.union(acc, BitGraph.out_edges(graph, v)) end)
   end
 
-  def out_neighbors(graph, vertex, opts \\ [])
-
-  def out_neighbors(graph, vertex, opts) when is_list(opts) do
-    out_neighbors(graph, vertex, get_neighbor_finder(graph, opts, default_neighbor_finder()))
-  end
-
-  def out_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
-    neighbor_finder.(graph, vertex, :out)
-  end
-
-  def in_neighbors(graph, vertex, opts \\ [])
-
-  def in_neighbors(graph, vertex, opts) when is_list(opts) do
-    in_neighbors(graph, vertex, get_neighbor_finder(graph, opts, default_neighbor_finder()))
-  end
-
-  def in_neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
-    neighbor_finder.(graph, vertex, :in)
-  end
-
-  def neighbors(graph, vertex, opts \\ [])
-
-  def neighbors(graph, vertex, opts) when is_list(opts) do
-    neighbors(graph, vertex, get_neighbor_finder(graph, opts, default_neighbor_finder()))
-  end
-
-  def neighbors(graph, vertex, neighbor_finder) when is_integer(vertex) and is_function(neighbor_finder, 3) do
-    MapSet.union(
-      in_neighbors(graph, vertex, neighbor_finder),
-      out_neighbors(graph, vertex, neighbor_finder)
-    )
-  end
-
 
   def in_edges(graph, to, opts \\ []) do
-    MapSet.new(in_neighbors(graph, to, opts),
+    MapSet.new(V.in_neighbors(graph, to, opts),
       fn neighbor -> get_edge(graph, neighbor, to) end
     )
   end
 
   def out_edges(graph, from, opts \\ []) do
-    MapSet.new(out_neighbors(graph, from, opts),
+    MapSet.new(V.out_neighbors(graph, from, opts),
       fn neighbor -> get_edge(graph, from, neighbor) end
     )
   end
@@ -91,43 +60,6 @@ defmodule BitGraph.E do
       in_edges(graph, vertex, opts),
       out_edges(graph, vertex, opts)
     )
-  end
-
-
-  def default_neighbor_finder(finder_type \\ :enum)
-
-  def default_neighbor_finder(:enum) do
-    fn graph, vertex, :in ->
-      Adjacency.column(graph[:adjacency], vertex)
-      graph, vertex, :out ->
-        Adjacency.row(graph[:adjacency], vertex)
-      end
-  end
-
-  def default_neighbor_finder(:iterable) do
-    fn graph, vertex, :in ->
-      Adjacency.column_iterator(graph[:adjacency], vertex)
-      graph, vertex, :out ->
-        Adjacency.row_iterator(graph[:adjacency], vertex)
-      end
-  end
-
-  def default_neighbor_iterator() do
-    default_neighbor_finder(:iterable)
-  end
-
-  def get_neighbor_finder(graph, opts, default \\ nil) do
-    Keyword.get(opts, :neighbor_finder) ||
-      BitGraph.get_opts(graph)[:neighbor_finder]
-      || default
-  end
-
-  def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
-    out_neighbors(graph, vertex, opts) |> MapSet.size()
-  end
-
-  def in_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
-    in_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
   def delete_edge(%{adjacency: %{bit_vector:  false}} = graph, _from, _to) do

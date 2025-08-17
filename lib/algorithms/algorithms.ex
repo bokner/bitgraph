@@ -1,5 +1,5 @@
 defmodule BitGraph.Algorithms do
-  alias BitGraph.{Dfs, Array, E}
+  alias BitGraph.{Dfs, Array, E, V}
   alias BitGraph.Algorithms.{SCC, Matching}
   alias BitGraph.Traversal.Utils
 
@@ -65,7 +65,7 @@ defmodule BitGraph.Algorithms do
 
 
   def get_cycle(graph, vertex) when is_integer(vertex) do
-    if E.in_degree(graph, vertex) > 0 && E.out_degree(graph, vertex) > 0 do
+    if V.in_degree(graph, vertex) > 0 && V.out_degree(graph, vertex) > 0 do
       Dfs.run(graph, vertices: vertex, process_edge_fun:
         fn state, vertex, _neighbor, :back  ->
               {:stop,

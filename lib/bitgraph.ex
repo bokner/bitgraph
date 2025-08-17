@@ -223,7 +223,7 @@ defmodule BitGraph do
 
     case V.get_vertex_index(graph, vertex) do
       nil -> MapSet.new()
-      vertex_index -> E.in_neighbors(graph, vertex_index)
+      vertex_index -> V.in_neighbors(graph, vertex_index)
     end
     |> vertex_set(graph)
   end
@@ -233,7 +233,7 @@ defmodule BitGraph do
 
     case V.get_vertex_index(graph, vertex) do
       nil -> MapSet.new()
-      vertex_index -> E.out_neighbors(graph, vertex_index)
+      vertex_index -> V.out_neighbors(graph, vertex_index)
     end
     |> vertex_set(graph)
   end

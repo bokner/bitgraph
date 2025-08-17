@@ -137,7 +137,7 @@ defmodule BitGraphTest.NeighborFinder do
     fn graph, vertex_index, direction ->
       vertex = BitGraph.V.get_vertex(graph, vertex_index)
 
-      BitGraph.E.default_neighbor_finder().(graph, vertex_index, direction)
+      BitGraph.Neighbor.default_neighbor_finder().(graph, vertex_index, direction)
       |> reverse_matching_edges(
         graph,
         vertex,

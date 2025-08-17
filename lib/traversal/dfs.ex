@@ -1,5 +1,6 @@
 defmodule BitGraph.Dfs do
-  alias BitGraph.E
+  alias BitGraph.V
+  alias BitGraph.Neighbor, as: N
   alias BitGraph.Array
 
   alias Iter.Iterable
@@ -58,7 +59,7 @@ defmodule BitGraph.Dfs do
     BitGraph.update_opts(graph, opts)
     |> then(fn g ->
       BitGraph.get_opts(g)[:neighbor_finder] && g
-      || BitGraph.update_opts(g, neighbor_finder: E.default_neighbor_iterator())
+      || BitGraph.update_opts(g, neighbor_finder: N.default_neighbor_iterator())
     end)
   end
 
@@ -299,11 +300,11 @@ defmodule BitGraph.Dfs do
   end
 
   defp vertex_neighbors(graph, vertex, :forward) do
-    E.out_neighbors(graph, vertex)
+    V.out_neighbors(graph, vertex)
   end
 
   defp vertex_neighbors(graph, vertex, :reverse) do
-    E.in_neighbors(graph, vertex)
+    V.in_neighbors(graph, vertex)
   end
 
   defp vertex_neighbors(graph, vertex, :both) do
