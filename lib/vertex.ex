@@ -1,5 +1,6 @@
 defmodule BitGraph.V do
   import BitGraph.Neighbor
+  alias Iter.Iterable
 
   def init_vertices(opts) do
     ## `id_to_index` is a map from vertex identifiers to their positions in the adjacency table
@@ -133,17 +134,26 @@ defmodule BitGraph.V do
 
   def neighbors(graph, vertex, neighbor_finder)
       when is_integer(vertex) and is_function(neighbor_finder, 3) do
-    MapSet.union(
-      in_neighbors(graph, vertex, neighbor_finder),
-      out_neighbors(graph, vertex, neighbor_finder)
+    Iterable.concat(
+      [
+        in_neighbors(graph, vertex, neighbor_finder),
+        out_neighbors(graph, vertex, neighbor_finder)
+      ]
     )
   end
 
   def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
-    out_neighbors(graph, vertex, opts) |> MapSet.size()
+    out_neighbors(graph, vertex, opts) |> Iterable.to_list() |> length()
   end
 
   def in_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
-    in_neighbors(graph, vertex, opts) |> MapSet.size()
+    in_neighbors(graph, vertex, opts) |> Iterable.to_list() |> length()
+  end
+
+  def isolated?(_graph, nil), do: false
+  def isolated?(graph, vertex) when is_integer(vertex) do
+    in_neighbors(graph, vertex) |> Iterable.next() == :done
+    && out_neighbors(graph, vertex) |> Iterable.next() == :done
+
   end
 end

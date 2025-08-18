@@ -8,6 +8,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
 
   alias BitGraph.{V}
   alias BitGraph.Array
+  alias Iter.Iterable
 
   @doc """
   `graph` - bipartite graph.
@@ -62,19 +63,27 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
         if in_fixed_matching?(state, lp_vertex_idx) do
           acc
         else
-          Enum.reduce_while(V.neighbors(graph, lp_vertex_idx), acc, fn neighbor, acc2 ->
-            if get_match(state, neighbor) == 0 do
-              update_match(state, neighbor, lp_vertex_idx)
-              increase_matching_count(state)
-              {:halt, MapSet.put(acc2, lp_vertex_idx)}
-            else
-              {:cont, acc2}
-            end
-          end)
+          graph
+          |> neighbors(lp_vertex_idx)
+          |> iterate_initial_matching_impl(lp_vertex_idx, state, acc)
         end
       end)
 
     Map.put(state, :initially_matched, initial_matching)
+  end
+
+  defp iterate_initial_matching_impl(neighbors, lp_vertex_idx, state, acc) do
+    case Iterable.next(neighbors) do
+      :done -> acc
+      {:ok, neighbor, rest} ->
+        if get_match(state, neighbor) == 0 do
+            update_match(state, neighbor, lp_vertex_idx)
+            increase_matching_count(state)
+            MapSet.put(acc, lp_vertex_idx)
+        else
+          iterate_initial_matching_impl(rest, lp_vertex_idx, state, acc)
+        end
+    end
   end
 
   defp apply_fixed_matching(%{left_partition_indices: left_partition_indices} = state, graph, fixed_matching) do
@@ -214,20 +223,32 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     else
       Array.put(used, vertex, 1)
 
-      Enum.reduce_while(V.neighbors(graph, vertex), false, fn neighbor, _new_match? ->
-        neighbor_match = get_match(state, neighbor)
+      dfs_iterate(graph, neighbors(graph, vertex), state, vertex, false)
+    end
+  end
+
+  def dfs_iterate(graph, neighbors, state, vertex, acc) do
+    case Iterable.next(neighbors) do
+      :done -> acc
+      {:ok, neighbor, rest} ->
+              neighbor_match = get_match(state, neighbor)
 
         if neighbor_match == 0 || dfs(graph, neighbor_match, state) do
           update_match(state, neighbor, vertex)
-          {:halt, true}
+          true
         else
-          {:cont, false}
+          dfs_iterate(graph, rest, state, vertex, false)
         end
-      end)
+
     end
   end
 
   defp adjacent_to_left_partition?(graph, vertex_index, left_partition) do
-    !MapSet.disjoint?(left_partition, V.neighbors(graph, vertex_index))
+    #!MapSet.disjoint?(left_partition, MapSet.new(neighbors(graph, vertex_index)))
+    Iterable.any?(neighbors(graph, vertex_index), fn n -> n in left_partition end)
+  end
+
+  defp neighbors(graph, vertex_index) do
+    V.neighbors(graph, vertex_index)
   end
 end

@@ -308,9 +308,11 @@ defmodule BitGraph.Dfs do
   end
 
   defp vertex_neighbors(graph, vertex, :both) do
-    MapSet.union(
+    Iterable.concat(
+      [
       vertex_neighbors(graph, vertex, :forward),
       vertex_neighbors(graph, vertex, :reverse)
+      ]
     )
   end
 

@@ -19,9 +19,7 @@ defmodule BitGraph.Common do
   end
 
   def to_enum(any) do
-    is_struct(any, Iter) && Iterable.to_list(any) || any
+    Iterable.to_list(any)
   end
-
-
 
 end
