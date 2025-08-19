@@ -6,7 +6,8 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
 
   """
 
-  alias BitGraph.{V}
+  alias BitGraph.V
+  alias BitGraph.Neighbor, as: N
   alias BitGraph.Array
   alias Iter.Iterable
 
@@ -223,24 +224,24 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     else
       Array.put(used, vertex, 1)
 
-      dfs_iterate(graph, neighbors(graph, vertex), state, vertex, false)
+      dfs_iterate(graph, neighbors(graph, vertex), state, vertex)
     end
   end
 
-  def dfs_iterate(graph, neighbors, state, vertex, acc) do
-    case Iterable.next(neighbors) do
-      :done -> acc
-      {:ok, neighbor, rest} ->
-              neighbor_match = get_match(state, neighbor)
+  def dfs_iterate(graph, neighbors, state, vertex) do
+    N.iterate(neighbors, false, iterate_fun(graph, state, vertex))
+  end
 
-        if neighbor_match == 0 || dfs(graph, neighbor_match, state) do
+  def iterate_fun(graph, state, vertex) do
+    fn neighbor, _acc ->
+      neighbor_match = get_match(state, neighbor)
+      if neighbor_match == 0 || dfs(graph, neighbor_match, state) do
           update_match(state, neighbor, vertex)
-          true
+          {:halt, true}
         else
-          dfs_iterate(graph, rest, state, vertex, false)
+          {:cont, false}
         end
-
-    end
+      end
   end
 
   defp adjacent_to_left_partition?(graph, vertex_index, left_partition) do

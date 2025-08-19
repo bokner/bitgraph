@@ -3,9 +3,6 @@ defmodule BitGraph.Dfs do
   alias BitGraph.Neighbor, as: N
   alias BitGraph.Array
 
-  alias Iter.Iterable
-  import BitGraph.Common
-
   @moduledoc """
   Depth-first search.
   Implementation roughly follows
@@ -113,9 +110,9 @@ defmodule BitGraph.Dfs do
        when is_integer(vertex) do
 
     initial_state = init_vertex_processing(state, vertex)
-    neighbor_iterator = vertex_neighbors_iterator(graph, vertex, direction)
+    neighbor_iterator = vertex_neighbors(graph, vertex, direction)
 
-    iterate(neighbor_iterator, initial_state,
+    N.iterate(neighbor_iterator, initial_state,
       fn neighbor, acc ->
         process_edge(graph, acc, vertex, neighbor)
       end)
@@ -136,19 +133,6 @@ defmodule BitGraph.Dfs do
       Array.put(state[:color], vertex, @black_vertex)
     end)
     |> process_vertex(vertex, :processed)
-  end
-
-  defp iterate(iterator, acc, process_fun) do
-    case Iterable.next(iterator) do
-      :done -> acc
-      {:ok, neighbor, iterator} ->
-        case process_fun.(neighbor, acc) do
-          {:cont, new_acc} ->
-            iterate(iterator, new_acc, process_fun)
-          {:halt, new_acc} ->
-            new_acc
-        end
-    end
   end
 
   defp inc_timer(%{timer: timer} = _state) do
@@ -285,20 +269,6 @@ defmodule BitGraph.Dfs do
     :cont
   end
 
-  defp vertex_neighbors_iterator(graph, vertex, type) when type in [:forward, :reverse] do
-    vertex_neighbors(graph, vertex, type)
-    |> to_iterator()
-  end
-
-  defp vertex_neighbors_iterator(graph, vertex, :both) do
-    Iterable.concat(
-      [
-      vertex_neighbors_iterator(graph, vertex, :forward),
-      vertex_neighbors_iterator(graph, vertex, :reverse)
-      ]
-    )
-  end
-
   defp vertex_neighbors(graph, vertex, :forward) do
     V.out_neighbors(graph, vertex)
   end
@@ -308,12 +278,7 @@ defmodule BitGraph.Dfs do
   end
 
   defp vertex_neighbors(graph, vertex, :both) do
-    Iterable.concat(
-      [
-      vertex_neighbors(graph, vertex, :forward),
-      vertex_neighbors(graph, vertex, :reverse)
-      ]
-    )
+    V.neighbors(graph, vertex)
   end
 
   def acyclic?(state) do

@@ -1,5 +1,6 @@
 defmodule BitGraph.Neighbor do
   alias BitGraph.Adjacency
+  alias Iter.Iterable
 
   def default_neighbor_finder(finder_type \\ :enum)
 
@@ -32,4 +33,30 @@ defmodule BitGraph.Neighbor do
       BitGraph.get_opts(graph)[:neighbor_finder] ||
       default
   end
+
+  def iterate_neighbors(graph, vertex_index, start_value, fun \\ fn neighbor, _acc -> neighbor end, direction \\ :both) when is_integer(vertex_index) do
+    iterator = cond do
+      direction == :both -> BitGraph.V.neighbors(graph, vertex_index)
+      direction == :in -> BitGraph.V.in_neighbors(graph, vertex_index)
+      direction == :out -> BitGraph.V.neighbors(graph, vertex_index)
+    end
+
+    iterate(iterator, start_value, fun)
+  end
+
+  def iterate(iterator, acc, fun) do
+    case Iterable.next(iterator) do
+      :done -> acc
+      {:ok, neighbor, rest} ->
+        case fun.(neighbor, acc) do
+          {:halt, acc_new} ->
+            acc_new
+          {:cont, acc_new} ->
+            iterate(rest, acc_new, fun)
+        end
+    end
+  end
+
+
+
 end
