@@ -11,6 +11,7 @@ defmodule BitGraph do
 
   alias BitGraph.{V, E, Adjacency}
   import BitGraph.Common
+  alias Iter.Iterable
 
   def new(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
@@ -229,7 +230,7 @@ defmodule BitGraph do
       nil -> MapSet.new()
       vertex_index -> V.in_neighbors(graph, vertex_index)
     end
-    |> vertex_set(graph)
+    |> shape(graph, opts)
   end
 
   def out_neighbors(graph, vertex, opts \\ []) do
@@ -239,11 +240,16 @@ defmodule BitGraph do
       nil -> MapSet.new()
       vertex_index -> V.out_neighbors(graph, vertex_index)
     end
-    |> vertex_set(graph)
+    |> shape(graph, opts)
   end
 
-  defp vertex_set(vertex_indices, graph) do
-    vertex_indices
+  defp shape(neighbors, graph, opts) do
+    shape = Keyword.get(opts, :shape, :set)
+    transform_neighbors(graph, neighbors, shape)
+  end
+
+  def transform_neighbors(graph, neighbors, :set) do
+    neighbors
     |> to_enum()
     |> Enum.reduce(MapSet.new(), fn vertex_index, acc ->
       case V.get_vertex(graph, vertex_index) do
@@ -253,8 +259,18 @@ defmodule BitGraph do
     end)
   end
 
+  def transform_neighbors(_graph, neighbors, :iterator) do
+    to_iterator(neighbors)
+  end
+
+  def transform_neighbors(graph, neighbors, transform_fun) when is_function(transform_fun, 2) do
+    transform_fun.(graph, neighbors)
+  end
+
   def neighbors(graph, vertex, opts \\ []) do
-    MapSet.union(out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts))
+    Iterable.concat(
+    [out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts)]
+    )
   end
 
   def in_degree(graph, vertex, opts \\ []) do

@@ -28,7 +28,7 @@ defmodule BitGraph.Neighbor do
     default_neighbor_finder(:iterable)
   end
 
-  def get_neighbor_finder(graph, opts \\ [], default \\ nil) do
+  def get_neighbor_finder(graph, opts \\ [], default \\ default_neighbor_finder()) do
     Keyword.get(opts, :neighbor_finder) ||
       BitGraph.get_opts(graph)[:neighbor_finder] ||
       default

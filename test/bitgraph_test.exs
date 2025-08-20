@@ -2,6 +2,7 @@ defmodule BitGraphTest do
   use ExUnit.Case
 
   alias BitGraph.{V, Adjacency}
+  alias Iter.{Iterable, Iterable.Mapper}
 
   describe "BitGraph" do
     test "create graph" do
@@ -124,7 +125,26 @@ defmodule BitGraphTest do
       graph = BitGraph.add_edge(graph, %BitGraph.E{from: :c, to: :a})
       assert  BitGraph.in_neighbors(graph, :a) == MapSet.new([:c])
       assert  BitGraph.out_neighbors(graph, :c) == MapSet.new([:a])
+    end
 
+    test "neighbors, transformations" do
+      graph = BitGraph.new()|> BitGraph.add_edge(:a, :b) |> BitGraph.add_edge(:a, :c)
+      ## Define transformation of the vertex neighbor indices back to their representation
+      neighbors = BitGraph.out_neighbors(graph, :a, shape: fn _graph, neighbors ->
+        Mapper.new(neighbors, fn neighbor ->
+          BitGraph.V.get_vertex(graph, neighbor)
+        end)
+      end)
+
+      assert is_struct(neighbors, Mapper)
+
+      assert {:ok, :b, iterator} = Iterable.next(neighbors)
+      assert {:ok, :c, iterator} = Iterable.next(iterator)
+      assert :done = Iterable.next(iterator)
+
+      # `:iterator` shape is equivalent to BitGraph.V.neighbors/3
+      neighbor_iterator = BitGraph.neighbors(graph, :a, shape: :iterator)
+      assert Iterable.to_list(neighbor_iterator) == [2, 3]
     end
 
     test "degrees" do
