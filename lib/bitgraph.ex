@@ -9,9 +9,8 @@ defmodule BitGraph do
 
   @type t :: map()
 
-  alias BitGraph.{V, E, Adjacency}
-  import BitGraph.Common
-  alias Iter.Iterable
+  alias BitGraph.{V, E, Adjacency, Neighbor}
+  alias Iter.{Iterable, Iterable.Mapper}
 
   def new(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
@@ -230,7 +229,7 @@ defmodule BitGraph do
       nil -> MapSet.new()
       vertex_index -> V.in_neighbors(graph, vertex_index)
     end
-    |> shape(graph, opts)
+    |> shape(graph, vertex, opts)
   end
 
   def out_neighbors(graph, vertex, opts \\ []) do
@@ -240,31 +239,31 @@ defmodule BitGraph do
       nil -> MapSet.new()
       vertex_index -> V.out_neighbors(graph, vertex_index)
     end
-    |> shape(graph, opts)
+    |> shape(graph, vertex, opts)
   end
 
-  defp shape(neighbors, graph, opts) do
+  defp shape(neighbors, graph, vertex, opts) do
     shape = Keyword.get(opts, :shape, :set)
-    transform_neighbors(graph, neighbors, shape)
+    transform_neighbors(graph, vertex, neighbors, shape)
   end
 
-  def transform_neighbors(graph, neighbors, :set) do
-    neighbors
-    |> to_enum()
-    |> Enum.reduce(MapSet.new(), fn vertex_index, acc ->
-      case V.get_vertex(graph, vertex_index) do
-        nil -> acc
-        vertex -> MapSet.put(acc, vertex)
-      end
+  ## Neighbors as an enum of vertices.
+  def transform_neighbors(graph, vertex, neighbors, :set) do
+    transform_neighbors(graph, vertex, neighbors, :iterator)
+    |> Neighbor.iterate(MapSet.new(), fn neighbor, acc -> {:cont, MapSet.put(acc, neighbor)} end)
+  end
+
+  ## Neighbors as an iterator of vertices
+  def transform_neighbors(graph, _vertex, neighbors, :iterator) do
+    Mapper.new(neighbors, fn vertex_index ->
+       V.get_vertex(graph, vertex_index)
     end)
+
   end
 
-  def transform_neighbors(_graph, neighbors, :iterator) do
-    to_iterator(neighbors)
-  end
-
-  def transform_neighbors(graph, neighbors, transform_fun) when is_function(transform_fun, 2) do
-    transform_fun.(graph, neighbors)
+  ## Neighbors
+  def transform_neighbors(graph, vertex, neighbors, transform_fun) when is_function(transform_fun, 3) do
+    transform_fun.(graph, vertex, neighbors)
   end
 
   def neighbors(graph, vertex, opts \\ []) do
@@ -293,14 +292,6 @@ defmodule BitGraph do
          edge_info -> MapSet.put(acc, edge_info)
         end
     end)
-    # neighbor_indices = neighbors_impl(graph, vertex_index, direction, opts)
-    # Enum.reduce(neighbor_indices, MapSet.new(), fn neighbor_index, acc ->
-    #   {from_vertex, to_vertex} = edge_vertices(vertex_index, neighbor_index, direction)
-    #   case edge_info_fun.(from_vertex, to_vertex, graph) do
-    #     nil -> acc
-    #     edge_info -> MapSet.put(acc, edge_info)
-    #   end
-    # end)
   end
 
   defp edges_impl(_graph, vertex_index, _edge_info_fun, _direction, _opts) when is_nil(vertex_index) do

@@ -130,7 +130,7 @@ defmodule BitGraphTest do
     test "neighbors, transformations" do
       graph = BitGraph.new()|> BitGraph.add_edge(:a, :b) |> BitGraph.add_edge(:a, :c)
       ## Define transformation of the vertex neighbor indices back to their representation
-      neighbors = BitGraph.out_neighbors(graph, :a, shape: fn _graph, neighbors ->
+      neighbors = BitGraph.out_neighbors(graph, :a, shape: fn _graph, _vertex, neighbors ->
         Mapper.new(neighbors, fn neighbor ->
           BitGraph.V.get_vertex(graph, neighbor)
         end)
@@ -142,9 +142,9 @@ defmodule BitGraphTest do
       assert {:ok, :c, iterator} = Iterable.next(iterator)
       assert :done = Iterable.next(iterator)
 
-      # `:iterator` shape is equivalent to BitGraph.V.neighbors/3
+      #
       neighbor_iterator = BitGraph.neighbors(graph, :a, shape: :iterator)
-      assert Iterable.to_list(neighbor_iterator) == [2, 3]
+      assert Iterable.to_list(neighbor_iterator) == [:b, :c]
     end
 
     test "degrees" do

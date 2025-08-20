@@ -2,9 +2,9 @@ defmodule BitGraph.Neighbor do
   alias BitGraph.Adjacency
   alias Iter.Iterable
 
-  def default_neighbor_finder(finder_type \\ :enum)
+  def default_neighbor_finder(finder_type \\ :set)
 
-  def default_neighbor_finder(:enum) do
+  def default_neighbor_finder(:set) do
     fn
       graph, vertex, :in ->
         Adjacency.column(graph[:adjacency], vertex)
