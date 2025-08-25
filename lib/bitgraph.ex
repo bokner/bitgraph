@@ -9,8 +9,9 @@ defmodule BitGraph do
 
   @type t :: map()
 
-  alias BitGraph.{V, E, Adjacency, Neighbor}
+  alias BitGraph.{V, E, Adjacency}
   alias Iter.{Iterable, Iterable.Mapper}
+  import BitGraph.Common
 
   def new(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
@@ -250,7 +251,7 @@ defmodule BitGraph do
   ## Neighbors as an enum of vertices.
   def transform_neighbors(graph, vertex, neighbors, :set) do
     transform_neighbors(graph, vertex, neighbors, :iterator)
-    |> Neighbor.iterate(MapSet.new(), fn neighbor, acc -> {:cont, MapSet.put(acc, neighbor)} end)
+    |> iterate(MapSet.new(), fn neighbor, acc -> {:cont, MapSet.put(acc, neighbor)} end)
   end
 
   ## Neighbors as an iterator of vertices
@@ -286,11 +287,13 @@ defmodule BitGraph do
 
   defp edges_impl(graph, vertex_index, edge_info_fun, direction, _opts) when is_integer(vertex_index) do
     edges = direction == :in && E.in_edges(graph, vertex_index) || E.out_edges(graph, vertex_index)
-    Enum.reduce(edges, MapSet.new(), fn %E{from: from, to: to}, acc ->
+    iterate(edges, MapSet.new(), fn %E{from: from, to: to}, acc ->
+      {:cont,
         case edge_info_fun.(from, to, graph) do
          nil -> acc
          edge_info -> MapSet.put(acc, edge_info)
         end
+      }
     end)
   end
 

@@ -1,6 +1,6 @@
 defmodule BitGraph.Neighbor do
   alias BitGraph.Adjacency
-  alias Iter.Iterable
+  import BitGraph.Common
 
   def default_neighbor_finder(finder_type \\ :set)
 
@@ -43,20 +43,6 @@ defmodule BitGraph.Neighbor do
 
     iterate(iterator, start_value, fun)
   end
-
-  def iterate(iterator, acc, fun) do
-    case Iterable.next(iterator) do
-      :done -> acc
-      {:ok, neighbor, rest} ->
-        case fun.(neighbor, acc) do
-          {:halt, acc_new} ->
-            acc_new
-          {:cont, acc_new} ->
-            iterate(rest, acc_new, fun)
-        end
-    end
-  end
-
 
 
 end

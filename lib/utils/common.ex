@@ -22,4 +22,18 @@ defmodule BitGraph.Common do
     Iterable.to_list(any)
   end
 
+  def iterate(iterator, acc, fun) do
+    case Iterable.next(iterator) do
+      :done -> acc
+      {:ok, element, rest} ->
+        case fun.(element, acc) do
+          {:halt, acc_new} ->
+            acc_new
+          {:cont, acc_new} ->
+            iterate(rest, acc_new, fun)
+        end
+    end
+  end
+
+
 end

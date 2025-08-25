@@ -2,6 +2,7 @@ defmodule BitGraph.Dfs do
   alias BitGraph.V
   alias BitGraph.Neighbor, as: N
   alias BitGraph.Array
+  import BitGraph.Common
 
   @moduledoc """
   Depth-first search.
@@ -112,7 +113,7 @@ defmodule BitGraph.Dfs do
     initial_state = init_vertex_processing(state, vertex)
     neighbor_iterator = vertex_neighbors(graph, vertex, direction)
 
-    N.iterate(neighbor_iterator, initial_state,
+    iterate(neighbor_iterator, initial_state,
       fn neighbor, acc ->
         process_edge(graph, acc, vertex, neighbor)
       end)

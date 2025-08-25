@@ -7,9 +7,9 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   """
 
   alias BitGraph.V
-  alias BitGraph.Neighbor, as: N
   alias BitGraph.Array
   alias Iter.Iterable
+  import BitGraph.Common
 
   @doc """
   `graph` - bipartite graph.
@@ -74,7 +74,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp iterate_initial_matching_impl(neighbors, lp_vertex_idx, state, acc) do
-    N.iterate(neighbors, acc, fn neighbor, acc2 ->
+    iterate(neighbors, acc, fn neighbor, acc2 ->
       if get_match(state, neighbor) == 0 do
         update_match(state, neighbor, lp_vertex_idx)
         increase_matching_count(state)
@@ -235,7 +235,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   def dfs_iterate(graph, neighbors, state, vertex) do
-    N.iterate(neighbors, false, iterate_fun(graph, state, vertex))
+    iterate(neighbors, false, iterate_fun(graph, state, vertex))
   end
 
   def iterate_fun(graph, state, vertex) do
