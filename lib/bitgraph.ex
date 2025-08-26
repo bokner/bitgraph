@@ -20,7 +20,8 @@ defmodule BitGraph do
       vertices: V.init_vertices(opts),
       edges: E.init_edges(opts),
       adjacency: Adjacency.init_adjacency_table(opts),
-      owner: self()
+      owner: self(),
+      subgraph: nil
     }
   end
 
@@ -29,12 +30,13 @@ defmodule BitGraph do
   end
 
   @doc """
-  Creates an induced subgraph on `subgraph_vertices`
+  Induced subgraph on `subgraph_vertices`
   """
   def subgraph(graph, subgraph_vertices, mode \\ :detached)
 
   ## Makes a 'detached' subgraph that only contains
   ## subset of vertices and edges between them.
+  ##
   def subgraph(graph, subgraph_vertices, :detached) do
     Enum.reduce(BitGraph.vertices(graph), copy(graph),
       fn existing_vertex, acc ->
@@ -47,27 +49,22 @@ defmodule BitGraph do
     )
   end
 
-  ## Chains current neighbor finder with the iterator
-  ## that filters out neighbors outside of the subgraph.
-  def subgraph(graph, subgraph_vertices, :contained) do
-    neighbor_finder = get_neighbor_finder(graph)
-    filtering_finder = fn graph, vertex, direction ->
-      if BitGraph.V.get_vertex(graph, vertex) in subgraph_vertices do
-        neighbor_finder.(graph, vertex, direction)
-        |> FlatMapper.new(fn neighbor ->
-          vertex = BitGraph.V.get_vertex(graph, neighbor)
-          if vertex in subgraph_vertices do
-            [neighbor]
-          else
-            []
-          end
-      end)
-      else
-        MapSet.new()
+  ## Maps the graph onto a subgraph.
+  ## The vertex implementation will use the subgraph option
+  ## to filter vertices accordingly.
+  ## The graph structure will not be modified.
+  def subgraph(graph, subgraph_vertices, :mapped) do
+    set_opt(graph, :subgraph,
+    ## :subgraph keeps the set of vertex indices in the form of iterator
+    Enum.reduce(subgraph_vertices, MapSet.new(), fn vertex, acc ->
+      case V.get_vertex_index(graph, vertex) do
+        nil -> acc
+        idx -> MapSet.put(acc, idx)
       end
-    end
-
-    set_neighbor_finder(graph, filtering_finder)
+    end)
+    ## TODO: should it be an iterator?
+    #|> Mapper.new(&Function.identity/1)
+    )
   end
 
   def strong_components(graph, opts \\ []) do
@@ -164,12 +161,12 @@ defmodule BitGraph do
   end
 
 
-  def vertices(graph) do
-    graph[:vertices][:index_to_vertex] |> Map.values() |> MapSet.new(&(&1.vertex))
+  def vertices(graph, mapper \\ &(&1.vertex)) do
+    V.vertices(graph, mapper)
   end
 
   def vertex_indices(graph) do
-    graph[:vertices][:index_to_vertex] |> Map.keys()
+    V.vertex_indices(graph)
   end
 
   def max_index(graph) do
@@ -177,7 +174,7 @@ defmodule BitGraph do
   end
 
   def num_vertices(graph) do
-    graph[:vertices][:num_vertices]
+    V.num_vertices(graph)
   end
 
   def add_edge(graph, {_edge_key, %E{} = edge}) do

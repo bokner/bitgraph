@@ -3,10 +3,10 @@ defmodule BitGraph.V do
   alias Iter.Iterable
 
   def init_vertices(opts) do
-    ## `id_to_index` is a map from vertex identifiers to their positions in the adjacency table
-    ## `index_to_vertex` is a map from vertex positions in the adjacency table to vertices
+    ## `vertex_to_index` is a map from vertex labels to their indices
+    ## `index_to_vertex` is a map from vertex indices to vertex records
     %{
-      id_to_index: Map.new(),
+      vertex_to_index: Map.new(),
       index_to_vertex: Map.new(),
       num_vertices: 0,
       max_vertices: opts[:max_vertices] || 1024
@@ -17,6 +17,34 @@ defmodule BitGraph.V do
     %{vertex: vertex, opts: opts}
   end
 
+  defp index_to_vertex_impl(graph) do
+    map = graph[:vertices][:index_to_vertex]
+    subgraph = BitGraph.get_opt(graph, :subgraph)
+    if subgraph do
+      Map.take(map, subgraph)
+    else
+      map
+    end
+  end
+
+  defp vertex_to_index_impl(graph) do
+    graph[:vertices][:vertex_to_index]
+  end
+
+  def vertices(graph, mapper \\ &(&1.vertex)) do
+    graph
+    |> index_to_vertex_impl()
+    |> MapSet.new(fn {idx, vertex} -> mapper.(vertex) end)
+  end
+
+  def vertex_indices(graph) do
+    index_to_vertex_impl(graph) |> Map.keys()
+  end
+
+  def num_vertices(graph) do
+    graph[:vertices][:num_vertices]
+  end
+
   def add_vertex(%{vertices: vertices} = graph, vertex, opts \\ []) do
     vertices
     |> add_vertex_impl(vertex, opts)
@@ -24,7 +52,14 @@ defmodule BitGraph.V do
   end
 
   def get_vertex_index(graph, vertex) do
-    Map.get(graph[:vertices][:id_to_index], vertex)
+    case Map.get(vertex_to_index_impl(graph), vertex) do
+      nil -> nil
+      idx ->
+        case BitGraph.get_opt(graph, :subgraph) do
+          nil -> idx
+          subgraph -> if Iterable.member?(subgraph, idx), do: idx
+        end
+    end
   end
 
   def get_vertex(graph, vertex_idx) when is_integer(vertex_idx) do
@@ -38,11 +73,13 @@ defmodule BitGraph.V do
   end
 
   def get_vertex(graph, vertex_idx, aux) when is_integer(vertex_idx) do
-    get_in(graph, [:vertices, :index_to_vertex, vertex_idx] ++ aux)
+    index_to_vertex_impl(graph) |> get_in([vertex_idx | aux])
   end
 
-  def get_vertex(graph, vertex, aux) do
-    get_vertex(graph, get_in(graph, [:vertices, :id_to_index, vertex]), aux)
+  def get_vertex(graph, vertex_label, aux) do
+    vertex_to_index_impl(graph)
+    |> Map.get(vertex_label)
+    |> then(fn vertex_idx -> if vertex_idx, do: get_vertex(graph, vertex_idx, aux) end)
   end
 
   def update_vertex(_graph, vertex_idx, _aux) when is_nil(vertex_idx) do
@@ -61,7 +98,7 @@ defmodule BitGraph.V do
 
   defp add_vertex_impl(
          %{
-           id_to_index: id_to_index_map,
+           vertex_to_index: vertex_to_index_map,
            index_to_vertex: index_to_vertex_map,
            num_vertices: num_vertices
          } = vertices,
@@ -70,7 +107,7 @@ defmodule BitGraph.V do
        ) do
     vertex_rec = new(vertex, opts)
 
-    if Map.has_key?(id_to_index_map, vertex_rec.vertex) do
+    if Map.has_key?(vertex_to_index_map, vertex_rec.vertex) do
       vertices
     else
       num_vertices = num_vertices + 1
@@ -78,7 +115,7 @@ defmodule BitGraph.V do
       %{
         vertices
         | num_vertices: num_vertices,
-          id_to_index: Map.put(id_to_index_map, vertex_rec.vertex, num_vertices),
+          vertex_to_index: Map.put(vertex_to_index_map, vertex_rec.vertex, num_vertices),
           index_to_vertex: Map.put(index_to_vertex_map, num_vertices, vertex_rec)
       }
     end
@@ -86,19 +123,19 @@ defmodule BitGraph.V do
 
   defp delete_vertex_impl(
          %{
-           id_to_index: id_to_index_map,
+           vertex_to_index: vertex_to_index_map,
            index_to_vertex: index_to_vertex_map,
            num_vertices: num_vertices
          } = vertices,
          vertex
        ) do
-    {pos, id_to_index_map} = Map.pop(id_to_index_map, vertex)
+    {pos, vertex_to_index_map} = Map.pop(vertex_to_index_map, vertex)
     index_to_vertex_map = (pos && Map.delete(index_to_vertex_map, pos)) || index_to_vertex_map
     num_vertices = (pos && num_vertices - 1) || num_vertices
 
     %{
       vertices
-      | id_to_index: id_to_index_map,
+      | vertex_to_index: vertex_to_index_map,
         index_to_vertex: index_to_vertex_map,
         num_vertices: num_vertices
     }

@@ -196,14 +196,14 @@ defmodule BitGraphTest do
 
   end
 
-  test "subgraph (contained)" do
+  test "subgraph (mapped)" do
     graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
       [
         {:a, :b}, {:a, :c}, {:a, :d},
         {:b, :c}, {:b, :d},
         {:d, :c}
       ])
-    subgraph = BitGraph.subgraph(graph, [:a, :b, :c], :contained)
+    subgraph = BitGraph.subgraph(graph, [:a, :b, :c], :mapped)
     assert BitGraph.out_neighbors(subgraph, :a) == MapSet.new([:b, :c])
     assert BitGraph.in_neighbors(subgraph, :c) == MapSet.new([:a, :b])
     assert Enum.empty?(BitGraph.neighbors(subgraph, :d) |> Iterable.to_list())
@@ -226,9 +226,7 @@ defmodule BitGraphTest do
 
     cycle1 = [:x1, 1, :x2, 2]
     cycle2 = [:x3, 4, :x4, 3]
-    cycle1_indices = MapSet.new(cycle1, fn vertex -> BitGraph.V.get_vertex_index(graph, vertex) end)
-    cycle2_indices = MapSet.new(cycle2, fn vertex -> BitGraph.V.get_vertex_index(graph, vertex) end)
-
+  
     ## The full graph has two strong components (cycles)
     ## It's not strongly connected (otherwise ti would have a single SCC)
     assert BitGraph.strong_components(graph) |> Enum.sort() ==
@@ -237,7 +235,7 @@ defmodule BitGraphTest do
     ## The cycles as subgraphs are strongly connected
     assert Enum.all?([cycle1, cycle2], fn c ->
       graph
-      |> BitGraph.subgraph(c, :contained)
+      |> BitGraph.subgraph(c, :mapped)
       |> BitGraph.strongly_connected?() end)
   end
 
