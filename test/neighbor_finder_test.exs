@@ -19,7 +19,7 @@ defmodule BitGraphTest.NeighborFinder do
     %{adjacency: %{bit_vector: bit_vector}} = graph
     refute bit_vector
 
-    virtual_graph = BitGraph.update_opts(graph, neighbor_finder: bipartite_neighbor_finder(partition_size))
+    virtual_graph = BitGraph.set_neighbor_finder(graph, bipartite_neighbor_finder(partition_size))
 
     ## neighbors and degrees
     assert Enum.all?(1..partition_size, fn idx ->
@@ -106,7 +106,6 @@ defmodule BitGraphTest.NeighborFinder do
 
     ## Same as in the previous tes, but with iterable neighbor finder.
     assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_iterator)
-
 
   end
 

@@ -57,7 +57,7 @@ defmodule BitGraph.Dfs do
     BitGraph.update_opts(graph, opts)
     |> then(fn g ->
       BitGraph.get_opts(g)[:neighbor_finder] && g
-      || BitGraph.update_opts(g, neighbor_finder: N.default_neighbor_iterator())
+      || BitGraph.set_neighbor_finder(g, N.default_neighbor_iterator())
     end)
   end
 

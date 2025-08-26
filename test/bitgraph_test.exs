@@ -173,7 +173,7 @@ defmodule BitGraphTest do
 
   end
 
-  test "subgraph" do
+  test "subgraph (detached)" do
     graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
       [
         {:a, :b}, {:a, :c}, {:a, :d},
@@ -194,6 +194,51 @@ defmodule BitGraphTest do
      _subgraph2 = BitGraph.delete_vertex(subgraph, :a)
      assert BitGraph.num_vertices(graph) == 4
 
+  end
+
+  test "subgraph (contained)" do
+    graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
+      [
+        {:a, :b}, {:a, :c}, {:a, :d},
+        {:b, :c}, {:b, :d},
+        {:d, :c}
+      ])
+    subgraph = BitGraph.subgraph(graph, [:a, :b, :c], :contained)
+    assert BitGraph.out_neighbors(subgraph, :a) == MapSet.new([:b, :c])
+    assert BitGraph.in_neighbors(subgraph, :c) == MapSet.new([:a, :b])
+    assert Enum.empty?(BitGraph.neighbors(subgraph, :d) |> Iterable.to_list())
+  end
+
+  test "subgraph in DFS" do
+    # Two strong components, connected with a single edge
+    graph = BitGraph.new() |> BitGraph.add_edges(
+      [
+        ##Cycle 1
+        {:x1, 1}, {2, :x1},
+        {:x2, 2}, {1, :x2},
+        ## Connecting edge
+        {:x3, 2},
+        ## Cycle 2
+        {:x3, 4}, {3, :x3},
+        {:x4, 3}, {4, :x4}
+      ]
+    )
+
+    cycle1 = [:x1, 1, :x2, 2]
+    cycle2 = [:x3, 4, :x4, 3]
+    cycle1_indices = MapSet.new(cycle1, fn vertex -> BitGraph.V.get_vertex_index(graph, vertex) end)
+    cycle2_indices = MapSet.new(cycle2, fn vertex -> BitGraph.V.get_vertex_index(graph, vertex) end)
+
+    ## The full graph has two strong components (cycles)
+    ## It's not strongly connected (otherwise ti would have a single SCC)
+    assert BitGraph.strong_components(graph) |> Enum.sort() ==
+      [MapSet.new(cycle1), MapSet.new(cycle2)] |> Enum.sort()
+    refute BitGraph.strongly_connected?(graph)
+    ## The cycles as subgraphs are strongly connected
+    assert Enum.all?([cycle1, cycle2], fn c ->
+      graph
+      |> BitGraph.subgraph(c, :contained)
+      |> BitGraph.strongly_connected?() end)
   end
 
 

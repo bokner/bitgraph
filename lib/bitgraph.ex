@@ -9,8 +9,8 @@ defmodule BitGraph do
 
   @type t :: map()
 
-  alias BitGraph.{V, E, Adjacency}
-  alias Iter.{Iterable, Iterable.Mapper}
+  alias BitGraph.{V, E, Adjacency, Neighbor}
+  alias Iter.{Iterable, Iterable.Mapper, Iterable.FlatMapper}
   import BitGraph.Common
 
   def new(opts \\ []) do
@@ -29,9 +29,13 @@ defmodule BitGraph do
   end
 
   @doc """
-  Creates a subgraph on `subgraph_vertices`
+  Creates an induced subgraph on `subgraph_vertices`
   """
-  def subgraph(graph, subgraph_vertices) do
+  def subgraph(graph, subgraph_vertices, mode \\ :detached)
+
+  ## Makes a 'detached' subgraph that only contains
+  ## subset of vertices and edges between them.
+  def subgraph(graph, subgraph_vertices, :detached) do
     Enum.reduce(BitGraph.vertices(graph), copy(graph),
       fn existing_vertex, acc ->
         if existing_vertex not in subgraph_vertices do
@@ -41,6 +45,29 @@ defmodule BitGraph do
         end
       end
     )
+  end
+
+  ## Chains current neighbor finder with the iterator
+  ## that filters out neighbors outside of the subgraph.
+  def subgraph(graph, subgraph_vertices, :contained) do
+    neighbor_finder = get_neighbor_finder(graph)
+    filtering_finder = fn graph, vertex, direction ->
+      if BitGraph.V.get_vertex(graph, vertex) in subgraph_vertices do
+        neighbor_finder.(graph, vertex, direction)
+        |> FlatMapper.new(fn neighbor ->
+          vertex = BitGraph.V.get_vertex(graph, neighbor)
+          if vertex in subgraph_vertices do
+            [neighbor]
+          else
+            []
+          end
+      end)
+      else
+        MapSet.new()
+      end
+    end
+
+    set_neighbor_finder(graph, filtering_finder)
   end
 
   def strong_components(graph, opts \\ []) do
@@ -80,6 +107,22 @@ defmodule BitGraph do
         Keyword.merge(current_opts,
         Keyword.take(opts, core_opts_names()))
       end)
+  end
+
+  def get_opt(graph, option) do
+    get_opts(graph)[option]
+  end
+
+  def set_opt(graph, option, value) do
+    put_in(graph, [:opts, option], value)
+  end
+
+  def set_neighbor_finder(graph, neighbor_finder) do
+    set_opt(graph, :neighbor_finder, neighbor_finder)
+  end
+
+  def get_neighbor_finder(graph) do
+    Neighbor.get_neighbor_finder(graph)
   end
 
   def add_vertex(graph, vertex, opts \\ []) do
