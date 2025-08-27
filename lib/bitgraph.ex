@@ -164,12 +164,12 @@ defmodule BitGraph do
   end
 
 
-  def vertices(graph) do
-    graph[:vertices][:index_to_vertex] |> Map.values() |> MapSet.new(&(&1.vertex))
+  def vertices(graph, mapper \\ &(&1.vertex)) do
+    V.vertices(graph, mapper)
   end
 
   def vertex_indices(graph) do
-    graph[:vertices][:index_to_vertex] |> Map.keys()
+    V.vertex_indices(graph)
   end
 
   def max_index(graph) do
