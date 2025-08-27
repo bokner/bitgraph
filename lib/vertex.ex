@@ -17,34 +17,37 @@ defmodule BitGraph.V do
     %{vertex: vertex, opts: opts}
   end
 
-  defp index_to_vertex_impl(graph) do
-    map = graph[:vertices][:index_to_vertex]
-    subgraph = BitGraph.get_subgraph(graph)
-    if subgraph do
-      Enum.reduce(subgraph, Map.new(),
-        fn vertex_idx, acc ->
-          case Map.get(map, vertex_idx) do
-            nil -> acc
-            vertex -> Map.put(acc, vertex_idx, vertex)
+  defp index_to_vertex_map(graph) do
+    graph[:vertices][:index_to_vertex]
+  end
+
+  defp index_to_vertex_impl(graph, mapper) do
+    map = index_to_vertex_map(graph)
+    case BitGraph.get_subgraph(graph) do
+      nil ->
+        MapSet.new(map, fn {_idx, vertex} -> mapper.(vertex) end)
+      subgraph ->
+        Enum.reduce(subgraph, MapSet.new(),
+          fn vertex_idx, acc ->
+            case Map.get(map, vertex_idx) do
+              nil -> acc
+              vertex -> MapSet.put(acc, mapper.(vertex))
           end
         end)
-    else
-      map
     end
   end
 
-  defp vertex_to_index_impl(graph) do
+  defp vertex_to_index_map(graph) do
     graph[:vertices][:vertex_to_index]
   end
 
   def vertices(graph, mapper \\ &(&1.vertex)) do
-    graph
-    |> index_to_vertex_impl()
-    |> MapSet.new(fn {_idx, vertex} -> mapper.(vertex) end)
+    index_to_vertex_impl(graph, mapper)
   end
 
   def vertex_indices(graph) do
-    index_to_vertex_impl(graph) |> Map.keys()
+    map = graph[:vertices][:index_to_vertex]
+    BitGraph.get_subgraph(graph) || Map.keys(map)
   end
 
   def num_vertices(graph) do
@@ -64,7 +67,7 @@ defmodule BitGraph.V do
   end
 
   def get_vertex_index(graph, vertex) do
-    case Map.get(vertex_to_index_impl(graph), vertex) do
+    case Map.get(vertex_to_index_map(graph), vertex) do
       nil -> nil
       idx ->
         case BitGraph.get_subgraph(graph) do
@@ -85,11 +88,11 @@ defmodule BitGraph.V do
   end
 
   def get_vertex(graph, vertex_idx, aux) when is_integer(vertex_idx) do
-    index_to_vertex_impl(graph) |> get_in([vertex_idx | aux])
+    index_to_vertex_map(graph) |> get_in([vertex_idx | aux])
   end
 
   def get_vertex(graph, vertex_label, aux) do
-    vertex_to_index_impl(graph)
+    vertex_to_index_map(graph)
     |> Map.get(vertex_label)
     |> then(fn vertex_idx -> if vertex_idx, do: get_vertex(graph, vertex_idx, aux) end)
   end
