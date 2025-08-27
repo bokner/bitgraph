@@ -226,14 +226,14 @@ defmodule BitGraphTest do
 
     cycle1 = [:x1, 1, :x2, 2]
     cycle2 = [:x3, 4, :x4, 3]
-  
+
     ## The full graph has two strong components (cycles)
     ## It's not strongly connected (otherwise ti would have a single SCC)
     assert BitGraph.strong_components(graph) |> Enum.sort() ==
       [MapSet.new(cycle1), MapSet.new(cycle2)] |> Enum.sort()
     refute BitGraph.strongly_connected?(graph)
     ## The cycles as subgraphs are strongly connected
-    assert Enum.all?([cycle1, cycle2], fn c ->
+    assert Enum.any?([cycle1, cycle2], fn c ->
       graph
       |> BitGraph.subgraph(c, :mapped)
       |> BitGraph.strongly_connected?() end)

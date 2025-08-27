@@ -10,7 +10,7 @@ defmodule BitGraph do
   @type t :: map()
 
   alias BitGraph.{V, E, Adjacency, Neighbor}
-  alias Iter.{Iterable, Iterable.Mapper, Iterable.FlatMapper}
+  alias Iter.{Iterable, Iterable.Mapper}
   import BitGraph.Common
 
   def new(opts \\ []) do
@@ -20,8 +20,7 @@ defmodule BitGraph do
       vertices: V.init_vertices(opts),
       edges: E.init_edges(opts),
       adjacency: Adjacency.init_adjacency_table(opts),
-      owner: self(),
-      subgraph: nil
+      owner: self()
     }
   end
 
@@ -40,7 +39,7 @@ defmodule BitGraph do
   def subgraph(graph, subgraph_vertices, :detached) do
     Enum.reduce(BitGraph.vertices(graph), copy(graph),
       fn existing_vertex, acc ->
-        if existing_vertex not in subgraph_vertices do
+        if !Iterable.member?(subgraph_vertices, existing_vertex) do
           BitGraph.delete_vertex(acc, existing_vertex)
         else
           acc
@@ -120,6 +119,10 @@ defmodule BitGraph do
 
   def get_neighbor_finder(graph) do
     Neighbor.get_neighbor_finder(graph)
+  end
+
+  def get_subgraph(graph) do
+    get_opt(graph, :subgraph)
   end
 
   def add_vertex(graph, vertex, opts \\ []) do

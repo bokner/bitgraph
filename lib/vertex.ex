@@ -1,6 +1,6 @@
 defmodule BitGraph.V do
   import BitGraph.Neighbor
-  alias Iter.Iterable
+  alias Iter.{Iterable, Iterable.Filterer}
 
   def init_vertices(opts) do
     ## `vertex_to_index` is a map from vertex labels to their indices
@@ -19,9 +19,15 @@ defmodule BitGraph.V do
 
   defp index_to_vertex_impl(graph) do
     map = graph[:vertices][:index_to_vertex]
-    subgraph = BitGraph.get_opt(graph, :subgraph)
+    subgraph = BitGraph.get_subgraph(graph)
     if subgraph do
-      Map.take(map, subgraph)
+      Enum.reduce(subgraph, Map.new(),
+        fn vertex_idx, acc ->
+          case Map.get(map, vertex_idx) do
+            nil -> acc
+            vertex -> Map.put(acc, vertex_idx, vertex)
+          end
+        end)
     else
       map
     end
@@ -34,7 +40,7 @@ defmodule BitGraph.V do
   def vertices(graph, mapper \\ &(&1.vertex)) do
     graph
     |> index_to_vertex_impl()
-    |> MapSet.new(fn {idx, vertex} -> mapper.(vertex) end)
+    |> MapSet.new(fn {_idx, vertex} -> mapper.(vertex) end)
   end
 
   def vertex_indices(graph) do
@@ -42,7 +48,13 @@ defmodule BitGraph.V do
   end
 
   def num_vertices(graph) do
-    graph[:vertices][:num_vertices]
+    #graph[:vertices][:num_vertices]
+    subgraph = BitGraph.get_subgraph(graph)
+    if subgraph do
+      Iterable.count(subgraph)
+    else
+      graph[:vertices][:num_vertices]
+    end
   end
 
   def add_vertex(%{vertices: vertices} = graph, vertex, opts \\ []) do
@@ -55,7 +67,7 @@ defmodule BitGraph.V do
     case Map.get(vertex_to_index_impl(graph), vertex) do
       nil -> nil
       idx ->
-        case BitGraph.get_opt(graph, :subgraph) do
+        case BitGraph.get_subgraph(graph) do
           nil -> idx
           subgraph -> if Iterable.member?(subgraph, idx), do: idx
         end
@@ -149,7 +161,7 @@ defmodule BitGraph.V do
 
   def out_neighbors(graph, vertex, neighbor_finder)
       when is_integer(vertex) and is_function(neighbor_finder, 3) do
-    neighbor_finder.(graph, vertex, :out)
+    neighbor_finder_call(neighbor_finder, graph, vertex, :out)
   end
 
   def in_neighbors(graph, vertex, opts \\ [])
@@ -160,7 +172,7 @@ defmodule BitGraph.V do
 
   def in_neighbors(graph, vertex, neighbor_finder)
       when is_integer(vertex) and is_function(neighbor_finder, 3) do
-    neighbor_finder.(graph, vertex, :in)
+    neighbor_finder_call(neighbor_finder, graph, vertex, :in)
   end
 
   def neighbors(graph, vertex, opts \\ [])
@@ -179,12 +191,18 @@ defmodule BitGraph.V do
     )
   end
 
+  defp neighbor_finder_call(neighbor_finder, graph, vertex, direction) do
+    subgraph = BitGraph.get_subgraph(graph)
+    neighbors = neighbor_finder.(graph, vertex, direction)
+    subgraph && Filterer.new(neighbors, fn n -> Iterable.member?(subgraph, n) end) || neighbors
+  end
+
   def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
-    out_neighbors(graph, vertex, opts) |> Iterable.to_list() |> length()
+    out_neighbors(graph, vertex, opts) |> Iterable.count()
   end
 
   def in_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
-    in_neighbors(graph, vertex, opts) |> Iterable.to_list() |> length()
+    in_neighbors(graph, vertex, opts) |> Iterable.count()
   end
 
   def isolated?(_graph, nil), do: false
