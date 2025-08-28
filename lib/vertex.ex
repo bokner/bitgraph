@@ -212,8 +212,8 @@ defmodule BitGraph.V do
 
   def isolated?(_graph, nil), do: false
   def isolated?(graph, vertex) when is_integer(vertex) do
-    in_neighbors(graph, vertex) |> Iterable.count() == 0
-    && out_neighbors(graph, vertex) |> Iterable.count() == 0
+    in_neighbors(graph, vertex) |> Iterable.empty?()
+    && out_neighbors(graph, vertex) |> Iterable.empty?()
 
   end
 end
