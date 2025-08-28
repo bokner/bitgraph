@@ -61,8 +61,6 @@ defmodule BitGraph do
         idx -> MapSet.put(acc, idx)
       end
     end)
-    ## TODO: should it be an iterator?
-    #|> Mapper.new(&Function.identity/1)
     )
   end
 
