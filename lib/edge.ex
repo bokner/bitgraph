@@ -11,6 +11,7 @@ defmodule BitGraph.E do
           opts: Keyword.t()
         }
   alias BitGraph.Adjacency
+  alias Iter.Iterable
 
   def init_edges(_opts) do
     Map.new()
@@ -44,21 +45,23 @@ defmodule BitGraph.E do
 
 
   def in_edges(graph, to, opts \\ []) do
-    MapSet.new(V.in_neighbors(graph, to, opts),
+    Iterable.map(V.in_neighbors(graph, to, opts),
       fn neighbor -> get_edge(graph, neighbor, to) end
     )
   end
 
   def out_edges(graph, from, opts \\ []) do
-    MapSet.new(V.out_neighbors(graph, from, opts),
+    Iterable.map(V.out_neighbors(graph, from, opts),
       fn neighbor -> get_edge(graph, from, neighbor) end
     )
   end
 
   def edges(graph, vertex, opts \\ []) do
-    MapSet.union(
-      in_edges(graph, vertex, opts),
-      out_edges(graph, vertex, opts)
+    Iterable.concat(
+      [
+        in_edges(graph, vertex, opts),
+        out_edges(graph, vertex, opts)
+      ]
     )
   end
 

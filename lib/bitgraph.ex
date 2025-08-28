@@ -326,6 +326,24 @@ defmodule BitGraph do
     out_neighbors(graph, vertex, opts) |> MapSet.size()
   end
 
+  ## Show the graph (intended for debugging)
+  def show_graph(graph, context \\ nil) do
+    %{
+      context: context,
+      vartices: BitGraph.vertices(graph) |> Iterable.to_list(),
+      edges:
+        BitGraph.E.edges(graph)
+        |> Iterable.map(fn %{from: from_index, to: to_index} ->
+          {
+            BitGraph.V.get_vertex(graph, from_index),
+            BitGraph.V.get_vertex(graph, to_index)
+          }
+        end)
+        |> Iterable.to_list()
+        |> Enum.group_by(fn {from, _to} -> from end, fn {_from, to} -> to end)
+    }
+  end
+
   defp edges_impl(graph, vertex_index, edge_info_fun, direction, _opts) when is_integer(vertex_index) do
     edges = direction == :in && E.in_edges(graph, vertex_index) || E.out_edges(graph, vertex_index)
     iterate(edges, MapSet.new(), fn %E{from: from, to: to}, acc ->
