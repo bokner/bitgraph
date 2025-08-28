@@ -21,8 +21,20 @@ defmodule BitGraph.V do
     graph[:vertices][:index_to_vertex]
   end
 
-  defp vertex_to_index_map(graph) do
-    graph[:vertices][:vertex_to_index]
+  defp index_to_vertex_impl(graph, mapper) do
+    map = index_to_vertex_map(graph)
+    case BitGraph.get_subgraph(graph) do
+      nil ->
+        MapSet.new(map, fn {_idx, vertex} -> mapper.(vertex) end)
+      subgraph ->
+        Enum.reduce(subgraph, MapSet.new(),
+          fn vertex_idx, acc ->
+            case Map.get(map, vertex_idx) do
+              nil -> acc
+              vertex -> MapSet.put(acc, mapper.(vertex))
+          end
+        end)
+    end
   end
 
   def vertices(graph, mapper \\ &(&1.vertex)) do

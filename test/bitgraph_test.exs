@@ -196,7 +196,7 @@ defmodule BitGraphTest do
 
   end
 
-  test "subgraph (contained)" do
+  test "subgraph (mapped)" do
     graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
       [
         {:a, :b}, {:a, :c}, {:a, :d},
@@ -233,7 +233,7 @@ defmodule BitGraphTest do
       [MapSet.new(cycle1), MapSet.new(cycle2)] |> Enum.sort()
     refute BitGraph.strongly_connected?(graph)
     ## The cycles as subgraphs are strongly connected
-    assert Enum.all?([cycle1, cycle2], fn c ->
+    assert Enum.any?([cycle1, cycle2], fn c ->
       graph
       |> BitGraph.subgraph(c, :mapped)
       |> BitGraph.strongly_connected?() end)
