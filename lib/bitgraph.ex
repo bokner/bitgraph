@@ -29,7 +29,7 @@ defmodule BitGraph do
   end
 
   @doc """
-  Induced subgraph on `subgraph_vertices`
+  An induced subgraph on `subgraph_vertices`
   """
   def subgraph(graph, subgraph_vertices, mode \\ :detached)
 
