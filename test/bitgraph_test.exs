@@ -206,7 +206,7 @@ defmodule BitGraphTest do
     subgraph = BitGraph.subgraph(graph, [:a, :b, :c], :mapped)
     assert BitGraph.out_neighbors(subgraph, :a) == MapSet.new([:b, :c])
     assert BitGraph.in_neighbors(subgraph, :c) == MapSet.new([:a, :b])
-    assert Enum.empty?(BitGraph.neighbors(subgraph, :d) |> Iterable.to_list())
+    assert Iterable.count(BitGraph.neighbors(subgraph, :d)) == 0
   end
 
   test "subgraph in DFS" do

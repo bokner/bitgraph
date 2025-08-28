@@ -21,33 +21,28 @@ defmodule BitGraph.V do
     graph[:vertices][:index_to_vertex]
   end
 
-  defp index_to_vertex_impl(graph, mapper) do
-    map = index_to_vertex_map(graph)
-    case BitGraph.get_subgraph(graph) do
-      nil ->
-        MapSet.new(map, fn {_idx, vertex} -> mapper.(vertex) end)
-      subgraph ->
-        Enum.reduce(subgraph, MapSet.new(),
-          fn vertex_idx, acc ->
-            case Map.get(map, vertex_idx) do
-              nil -> acc
-              vertex -> MapSet.put(acc, mapper.(vertex))
-          end
-        end)
-    end
-  end
-
   defp vertex_to_index_map(graph) do
     graph[:vertices][:vertex_to_index]
   end
 
   def vertices(graph, mapper \\ &(&1.vertex)) do
-    index_to_vertex_impl(graph, mapper)
+    case BitGraph.get_subgraph(graph) do
+      nil ->
+        graph
+        |> index_to_vertex_map()
+        |> Enum.reduce(MapSet.new(), fn {_idx, vertex}, acc ->
+          MapSet.put(acc, mapper.(vertex))
+        end)
+      subgraph ->
+        MapSet.new(subgraph, fn index -> mapper.(index_to_vertex_map(graph)[index]) end)
+    end
   end
 
   def vertex_indices(graph) do
-    map = graph[:vertices][:index_to_vertex]
-    BitGraph.get_subgraph(graph) || Map.keys(map)
+    case BitGraph.get_subgraph(graph) do
+      nil -> index_to_vertex_map(graph) |> Map.keys()
+      subgraph -> subgraph
+    end
   end
 
   def num_vertices(graph) do
@@ -67,13 +62,10 @@ defmodule BitGraph.V do
   end
 
   def get_vertex_index(graph, vertex) do
-    case Map.get(vertex_to_index_map(graph), vertex) do
-      nil -> nil
-      idx ->
-        case BitGraph.get_subgraph(graph) do
-          nil -> idx
-          subgraph -> if Iterable.member?(subgraph, idx), do: idx
-        end
+    idx = Map.get(vertex_to_index_map(graph), vertex)
+    case BitGraph.get_subgraph(graph) do
+      nil -> idx
+      subgraph -> if Iterable.member?(subgraph, idx), do: idx
     end
   end
 
@@ -88,13 +80,20 @@ defmodule BitGraph.V do
   end
 
   def get_vertex(graph, vertex_idx, aux) when is_integer(vertex_idx) do
-    index_to_vertex_map(graph) |> get_in([vertex_idx | aux])
+    subgraph = BitGraph.get_subgraph(graph)
+
+    if !subgraph || (subgraph && Iterable.member?(subgraph, vertex_idx)) do
+      get_vertex_impl(graph, vertex_idx, aux)
+    end
+
   end
 
-  def get_vertex(graph, vertex_label, aux) do
-    vertex_to_index_map(graph)
-    |> Map.get(vertex_label)
-    |> then(fn vertex_idx -> if vertex_idx, do: get_vertex(graph, vertex_idx, aux) end)
+  def get_vertex(graph, vertex, aux) do
+    get_vertex(graph, vertex_to_index_map(graph) |> get_in([vertex | aux]))
+  end
+
+  defp get_vertex_impl(graph, vertex_idx, aux) do
+    index_to_vertex_map(graph) |> get_in([vertex_idx | aux])
   end
 
   def update_vertex(_graph, vertex_idx, _aux) when is_nil(vertex_idx) do
@@ -113,8 +112,8 @@ defmodule BitGraph.V do
 
   defp add_vertex_impl(
          %{
-           vertex_to_index: vertex_to_index_map,
-           index_to_vertex: index_to_vertex_map,
+           vertex_to_index: vertex_to_index,
+           index_to_vertex: index_to_vertex,
            num_vertices: num_vertices
          } = vertices,
          vertex,
@@ -122,7 +121,7 @@ defmodule BitGraph.V do
        ) do
     vertex_rec = new(vertex, opts)
 
-    if Map.has_key?(vertex_to_index_map, vertex_rec.vertex) do
+    if Map.has_key?(vertex_to_index, vertex_rec.vertex) do
       vertices
     else
       num_vertices = num_vertices + 1
@@ -130,28 +129,28 @@ defmodule BitGraph.V do
       %{
         vertices
         | num_vertices: num_vertices,
-          vertex_to_index: Map.put(vertex_to_index_map, vertex_rec.vertex, num_vertices),
-          index_to_vertex: Map.put(index_to_vertex_map, num_vertices, vertex_rec)
+          vertex_to_index: Map.put(vertex_to_index, vertex_rec.vertex, num_vertices),
+          index_to_vertex: Map.put(index_to_vertex, num_vertices, vertex_rec)
       }
     end
   end
 
   defp delete_vertex_impl(
          %{
-           vertex_to_index: vertex_to_index_map,
-           index_to_vertex: index_to_vertex_map,
+           vertex_to_index: vertex_to_index,
+           index_to_vertex: index_to_vertex,
            num_vertices: num_vertices
          } = vertices,
          vertex
        ) do
-    {pos, vertex_to_index_map} = Map.pop(vertex_to_index_map, vertex)
-    index_to_vertex_map = (pos && Map.delete(index_to_vertex_map, pos)) || index_to_vertex_map
+    {pos, vertex_to_index} = Map.pop(vertex_to_index, vertex)
+    index_to_vertex = (pos && Map.delete(index_to_vertex, pos)) || index_to_vertex
     num_vertices = (pos && num_vertices - 1) || num_vertices
 
     %{
       vertices
-      | vertex_to_index: vertex_to_index_map,
-        index_to_vertex: index_to_vertex_map,
+      | vertex_to_index: vertex_to_index,
+        index_to_vertex: index_to_vertex,
         num_vertices: num_vertices
     }
   end
@@ -195,9 +194,12 @@ defmodule BitGraph.V do
   end
 
   defp neighbor_finder_call(neighbor_finder, graph, vertex, direction) do
-    subgraph = BitGraph.get_subgraph(graph)
     neighbors = neighbor_finder.(graph, vertex, direction)
-    subgraph && Filterer.new(neighbors, fn n -> Iterable.member?(subgraph, n) end) || neighbors
+    case BitGraph.get_subgraph(graph) do
+      nil -> neighbors
+      subgraph ->
+        Filterer.new(neighbors, fn n -> Iterable.member?(subgraph, n) end)
+    end
   end
 
   def out_degree(graph, vertex, opts \\ []) when is_integer(vertex) do
@@ -210,8 +212,8 @@ defmodule BitGraph.V do
 
   def isolated?(_graph, nil), do: false
   def isolated?(graph, vertex) when is_integer(vertex) do
-    in_neighbors(graph, vertex) |> Iterable.next() == :done
-    && out_neighbors(graph, vertex) |> Iterable.next() == :done
+    in_neighbors(graph, vertex) |> Iterable.empty?()
+    && out_neighbors(graph, vertex) |> Iterable.empty?()
 
   end
 end

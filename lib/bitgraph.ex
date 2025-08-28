@@ -29,7 +29,7 @@ defmodule BitGraph do
   end
 
   @doc """
-  Induced subgraph on `subgraph_vertices`
+  An induced subgraph on `subgraph_vertices`
   """
   def subgraph(graph, subgraph_vertices, mode \\ :detached)
 
@@ -53,7 +53,7 @@ defmodule BitGraph do
   ## to filter vertices accordingly.
   ## The graph structure will not be modified.
   def subgraph(graph, subgraph_vertices, :mapped) do
-    set_opt(graph, :subgraph,
+    Map.put(graph, :subgraph,
     ## :subgraph keeps the set of vertex indices in the form of iterator
     Enum.reduce(subgraph_vertices, MapSet.new(), fn vertex, acc ->
       case V.get_vertex_index(graph, vertex) do
@@ -61,8 +61,6 @@ defmodule BitGraph do
         idx -> MapSet.put(acc, idx)
       end
     end)
-    ## TODO: should it be an iterator?
-    #|> Mapper.new(&Function.identity/1)
     )
   end
 
@@ -122,7 +120,7 @@ defmodule BitGraph do
   end
 
   def get_subgraph(graph) do
-    get_opt(graph, :subgraph)
+    graph[:subgraph]
   end
 
   def add_vertex(graph, vertex, opts \\ []) do
