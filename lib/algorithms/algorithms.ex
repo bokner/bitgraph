@@ -81,12 +81,12 @@ defmodule BitGraph.Algorithms do
     end
   end
 
-  def bipartite_matching(graph, left_partition, opts \\ []) do
+  def bipartite_matching(graph, opts \\ []) do
     {algo, algo_opts} = Keyword.pop(opts, :algorithm, :kuhn)
 
     case algo do
       :kuhn ->
-        Matching.Kuhn.run(graph, left_partition, algo_opts)
+        Matching.Kuhn.run(graph, algo_opts)
       other -> throw({:bipartite_matching, :unknown_algo, other})
     end
   end

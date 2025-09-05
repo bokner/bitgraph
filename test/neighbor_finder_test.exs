@@ -129,7 +129,7 @@ defmodule BitGraphTest.NeighborFinder do
   end
 
   defp matching_neighbor_finder(graph, partition_size) do
-    %{matching: left_to_right_matching} = Kuhn.run(graph, Enum.map(1..partition_size, fn idx -> {:L, idx} end))
+    %{matching: left_to_right_matching} = Kuhn.run(graph, left_partition: Enum.map(1..partition_size, fn idx -> {:L, idx} end))
 
     right_to_left_matching = Map.new(left_to_right_matching, fn {l, r} -> {r, l} end)
 

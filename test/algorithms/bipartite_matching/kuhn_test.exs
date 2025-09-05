@@ -26,20 +26,20 @@ defmodule BitGraphTest.Algorithms.Kuhn do
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
 
-      matching = Kuhn.run(bp_graph, left_partition)
+      matching = Kuhn.run(bp_graph, left_partition: left_partition)
 
       assert_matching(matching, 3)
 
       bp_graph2 = BitGraph.delete_edge(bp_graph, {:L, 3}, {:R, 3})
 
-      matching2 = Kuhn.run(bp_graph2, left_partition)
+      matching2 = Kuhn.run(bp_graph2, left_partition: left_partition)
 
       assert_matching(matching2, 3)
 
       bp_graph3 = BitGraph.delete_edge(bp_graph2, {:L, 3}, {:R, 4})
 
       ## 3 nodes in the left partition, 2 nodes in the right partition
-      matching3 = Kuhn.run(bp_graph3, left_partition)
+      matching3 = Kuhn.run(bp_graph3, left_partition: left_partition)
 
       assert_matching(matching3, 2)
     end
@@ -49,13 +49,13 @@ defmodule BitGraphTest.Algorithms.Kuhn do
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
 
-      matching = Kuhn.run(bp_graph, left_partition)
+      matching = Kuhn.run(bp_graph, left_partition: left_partition)
 
       assert_matching(matching, 6)
 
       bp_graph2 = BitGraph.delete_edge(bp_graph, {:L, 6}, {:R, 5})
 
-      matching2 = Kuhn.run(bp_graph2, left_partition)
+      matching2 = Kuhn.run(bp_graph2, left_partition: left_partition)
 
       assert_matching(matching2, 6)
 
@@ -64,7 +64,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
         |> BitGraph.delete_edge({:L, 1}, {:R, 5})
         |> BitGraph.delete_edge({:L, 4}, {:R, 5})
 
-      matching3 = Kuhn.run(bp_graph3, left_partition)
+      matching3 = Kuhn.run(bp_graph3, left_partition: left_partition)
 
       assert_matching(matching3, 5)
     end
@@ -73,7 +73,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       right_side_neighbors = @three_vertices_instance
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
-      assert_matching(Kuhn.run(bp_graph, left_partition), 3)
+      assert_matching(Kuhn.run(bp_graph, left_partition: left_partition), 3)
     end
 
     test "initial_matching (6 vertices)" do
@@ -81,7 +81,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
 
-      assert_matching(Kuhn.run(bp_graph, left_partition), 6)
+      assert_matching(Kuhn.run(bp_graph, left_partition: left_partition), 6)
     end
 
     test "fixed matching" do
@@ -98,7 +98,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       ## Fixed matching is respected
       assert {:R, 5} = Map.get(matching.matching, {:L, 1})
 
-      matching_no_fixed = Kuhn.run(bp_graph, left_partition)
+      matching_no_fixed = Kuhn.run(bp_graph, left_partition: left_partition)
 
       # Matching with nothing fixed is different
       refute {:R, 5} == Map.get(matching_no_fixed.matching, {:L, 1})
@@ -112,11 +112,11 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       ## There is no value 0 for any of the left-side vertices
       non_value_edge = %{{:R, 1} => {:L, 1}}
 
-      assert catch_throw(Kuhn.run(bp_graph, left_partition, fixed_matching: non_value_edge))
+      assert catch_throw(Kuhn.run(bp_graph, left_partition: left_partition, fixed_matching: non_value_edge))
                 == {:error, {:not_in_left_partition, {:R, 1}}}
 
       invalid_fixed_matching = %{{:L, 1} => {:R, 1}, {:L, 2} => {:R, 1}}
-      assert catch_throw(Kuhn.run(bp_graph, left_partition, fixed_matching: invalid_fixed_matching))
+      assert catch_throw(Kuhn.run(bp_graph, left_partition: left_partition, fixed_matching: invalid_fixed_matching))
       == {:error, {:invalid_fixed_matching, {:multiple_matches, {:R, 1}}}}
 
     end
@@ -143,7 +143,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       right_side_neighbors = @free_node_instance
 
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
-      %{free: free_nodes, matching: matching} = Kuhn.run(bp_graph, left_partition)
+      %{free: free_nodes, matching: matching} = Kuhn.run(bp_graph, left_partition: left_partition)
       ## Free nodes belong to value graph
       assert Enum.all?(free_nodes, fn node -> BitGraph.get_vertex(bp_graph, node) end)
       ## All free nodes are in the 'right' partition

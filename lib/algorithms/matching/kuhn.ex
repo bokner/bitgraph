@@ -13,9 +13,9 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
 
   @doc """
   `graph` - bipartite graph.
-  `left_partition` - list or set of vertices that represent either part of `graph`.
 
   Options:
+  - :left_partition (mandatory) - list or set of vertices that represent one of the two paartition of `graph`.
   - :fixed_matching (optional) - The edges that have to be in matching. This is a `left_vertex => right vertex`
     , where `left_vertex` is a vertex from `left_partition`
   - :required_size (optional) - The required size of maximum matching. If not reached, algorithm returns `nil`
@@ -24,9 +24,19 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     - :matching - map of left_vertex => right_vertex
     - :free - unmatched vertices from right partition
   """
-  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) ::
+  @spec run(BitGraph.t(), Keyword.t()) ::
           %{matching: Map.t(), free: MapSet.t()} | nil
-  def run(graph, left_partition, opts \\ [])
+  def run(graph, opts \\ [])
+
+  def run(graph, opts) do
+    case Keyword.get(opts, :left_partition) do
+      nil -> throw({:mandatory_option, :left_partition})
+      left_partition ->
+        run(graph, left_partition, opts)
+    end
+  end
+
+  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: %{matching: Map.t(), free: MapSet.t()} | nil
 
   def run(graph, left_partition, opts) when is_list(left_partition) do
     run(graph, MapSet.new(left_partition), opts)
