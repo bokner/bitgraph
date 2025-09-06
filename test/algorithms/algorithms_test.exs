@@ -1,8 +1,8 @@
-defmodule BitGraphTest.Algorithms do
+defmodule BitGraphTest.Algorithm do
   use ExUnit.Case
 
   alias BitGraph.Common
-  alias BitGraph.Algorithms
+  alias BitGraph.Algorithm
   alias BitGraph.V
 
   test "Topsort for DAG" do
@@ -23,7 +23,7 @@ defmodule BitGraphTest.Algorithms do
 
     topsort_result =
       graph
-      |> Algorithms.topsort()
+      |> Algorithm.topsort()
       |> then(fn indices -> Common.vertex_indices_to_ids(graph, indices) end)
     assert Enum.all?(edges,
         fn {from, to} ->
@@ -34,22 +34,22 @@ defmodule BitGraphTest.Algorithms do
 
   test "Topsort and acyclicity for graphs with/without cycles" do
     cycle = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:c, :a}, {:b, :c}])
-    refute Algorithms.acyclic?(cycle)
-    refute Algorithms.topsort(cycle)
+    refute Algorithm.acyclic?(cycle)
+    refute Algorithm.topsort(cycle)
     bull = BitGraph.add_edges(cycle, [{:a, :e}, {:f, :b}])
-    refute Algorithms.acyclic?(bull)
-    refute Algorithms.topsort(bull)
+    refute Algorithm.acyclic?(bull)
+    refute Algorithm.topsort(bull)
     star = BitGraph.delete_edge(bull, :b, :c)
-    assert Algorithms.acyclic?(star)
-    assert Algorithms.topsort(star)
+    assert Algorithm.acyclic?(star)
+    assert Algorithm.topsort(star)
   end
 
   test "acyclic?" do
     graph1 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:a, :c}, {:b, :c}])
-    assert Algorithms.acyclic?(graph1)
+    assert Algorithm.acyclic?(graph1)
 
     graph2 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:c, :a}, {:b, :c}])
-    refute Algorithms.acyclic?(graph2)
+    refute Algorithm.acyclic?(graph2)
 
     graph3 = BitGraph.new() |> BitGraph.add_edges(
       [
@@ -63,21 +63,21 @@ defmodule BitGraphTest.Algorithms do
         {"0", "5"}
       ]
     )
-    assert Algorithms.acyclic?(graph3)
+    assert Algorithm.acyclic?(graph3)
   end
 
   test "get_cycle" do
     ## Acyclic graph
     graph1 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:a, :c}, {:b, :c}])
     refute Enum.any?(BitGraph.vertex_indices(graph1),
-      fn v_idx -> Algorithms.get_cycle(graph1, v_idx) end)
+      fn v_idx -> Algorithm.get_cycle(graph1, v_idx) end)
 
     ## Cyclic triangle
     graph2 = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:c, :a}, {:b, :c}])
     ## For every starting vertex, there is a cycle of length 3
     assert Enum.all?(BitGraph.vertex_indices(graph2),
       fn v_idx ->
-        Algorithms.get_cycle(graph2, v_idx)
+        Algorithm.get_cycle(graph2, v_idx)
         |> MapSet.new() |> MapSet.size() == 3
       end)
 
@@ -94,13 +94,13 @@ defmodule BitGraphTest.Algorithms do
     ]
     wiki_graph = BitGraph.new() |> BitGraph.add_edges(edges)
     ## No cycle for edge with a single neighbor
-    refute Algorithms.get_cycle(wiki_graph, V.get_vertex_index(wiki_graph, :i))
+    refute Algorithm.get_cycle(wiki_graph, V.get_vertex_index(wiki_graph, :i))
     assert Enum.all?([:a, :b, :c, :d, :e, :f, :g],
     fn v ->
       v_idx = V.get_vertex_index(wiki_graph, v)
         Common.cycle?(
           wiki_graph,
-          Algorithms.get_cycle(wiki_graph, v_idx)
+          Algorithm.get_cycle(wiki_graph, v_idx)
       )
     end)
   end
@@ -111,13 +111,45 @@ defmodule BitGraphTest.Algorithms do
       {:d, :e}, {:d, :f}, {:e, :f}, # component 2
     ]
     graph = BitGraph.new() |> BitGraph.add_edges(edges)
-    components = Algorithms.components(graph)
+    components = Algorithm.components(graph)
     assert length(components) == 2
     assert Enum.sort([MapSet.new([1, 2, 3]), MapSet.new([4, 5, 6])]) ==
       Enum.sort(components)
     single_component = BitGraph.add_edge(graph, :c, :f)
-    assert length(Algorithms.components(single_component)) == 1
+    assert length(Algorithm.components(single_component)) == 1
   end
+
+  test "bipartite matching" do
+    ## Basic test for front API
+    range = 1..3
+    left_partition_indices = Enum.to_list(range)
+    ## Build complete bipartite graph
+    left_partition = Enum.map(left_partition_indices, fn idx -> {:L, idx} end)
+    graph =
+    BitGraph.new()
+    |> BitGraph.add_vertices(left_partition)
+    |> then(fn graph -> Enum.reduce(range, graph, fn left_vertex, acc ->
+      Enum.reduce(range, acc,
+        fn right_vertex, acc2 ->
+          BitGraph.add_edge(acc2, {:L, left_vertex}, {:R, right_vertex})
+        end)
+    end)
+    end)
+
+    %{matching: matching} = BitGraph.bipartite_matching(graph, left_partition: left_partition)
+    assert Map.keys(matching) |> Enum.sort() == left_partition |> Enum.sort()
+    assert Map.values(matching) |> Enum.uniq() |> length() == Range.size(range)
+
+    ## Same, but only run 'raw' algorithm.
+    ## This means we have to pass left partition as a list of vertex indices
+    %{matching: matching} = BitGraph.Algorithm.bipartite_matching(graph, left_partition: Enum.to_list(range))
+    assert Map.keys(matching) |> Enum.sort() == left_partition_indices
+    ## By construction of the graph, left partition indices follow right partition indices.
+    assert Map.values(matching) == Enum.map(left_partition_indices, fn idx -> idx + length(left_partition_indices) end)
+
+  end
+
+
 
 
 end

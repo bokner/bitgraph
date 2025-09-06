@@ -67,18 +67,18 @@ defmodule BitGraph do
   def strong_components(graph, opts \\ []) do
     graph
     |> update_opts(opts)
-    |> BitGraph.Algorithms.strong_components(opts)
+    |> BitGraph.Algorithm.strong_components(opts)
     |> Enum.map(fn component ->
       MapSet.new(component, fn vertex_idx -> BitGraph.V.get_vertex(graph, vertex_idx) end)
     end)
   end
 
   def strongly_connected?(graph, opts \\ []) do
-    BitGraph.Algorithms.strongly_connected?(graph, opts)
+    BitGraph.Algorithm.strongly_connected?(graph, opts)
   end
 
   def bipartite_matching(graph, opts \\ []) do
-    BitGraph.Algorithms.bipartite_matching(graph, opts)
+    BitGraph.Algorithm.bipartite_matching(graph, Keyword.put(opts, :api, true))
   end
 
   def default_opts() do
@@ -334,7 +334,7 @@ defmodule BitGraph do
   def show_graph(graph, context \\ nil) do
     %{
       context: context,
-      vartices: BitGraph.vertices(graph) |> Iterable.to_list(),
+      vertices: BitGraph.vertices(graph) |> Iterable.to_list(),
       edges:
         BitGraph.E.edges(graph)
         |> Iterable.map(fn %{from: from_index, to: to_index} ->

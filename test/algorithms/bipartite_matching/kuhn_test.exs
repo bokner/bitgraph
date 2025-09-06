@@ -1,5 +1,5 @@
-defmodule BitGraphTest.Algorithms.Kuhn do
-  alias BitGraph.Algorithms.Matching.Kuhn
+defmodule BitGraphTest.Algorithm.Kuhn do
+  alias BitGraph.Algorithm.Matching.Kuhn
   use ExUnit.Case, async: false
 
   @three_vertices_instance [[1, 2], [1, 2], [1, 2, 3, 4]]
@@ -96,7 +96,8 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       assert_matching(matching, 6)
 
       ## Fixed matching is respected
-      assert {:R, 5} = Map.get(matching.matching, {:L, 1})
+      assert BitGraph.V.get_vertex_index(bp_graph, {:R, 5}) == Map.get(matching.matching,
+        BitGraph.V.get_vertex_index(bp_graph, {:L, 1}))
 
       matching_no_fixed = Kuhn.run(bp_graph, left_partition: left_partition)
 
@@ -145,7 +146,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
       %{free: free_nodes, matching: matching} = Kuhn.run(bp_graph, left_partition: left_partition)
       ## Free nodes belong to value graph
-      assert Enum.all?(free_nodes, fn node -> BitGraph.get_vertex(bp_graph, node) end)
+      assert Enum.all?(free_nodes, fn node -> BitGraph.V.get_vertex(bp_graph, node) end)
       ## All free nodes are in the 'right' partition
       assert MapSet.intersection(free_nodes, left_partition) |> MapSet.size() == 0
       ## Free nodes are not in matching
@@ -166,7 +167,7 @@ defmodule BitGraphTest.Algorithms.Kuhn do
         BitGraph.add_edges(g_acc, edges)
       end)
 
-    {bp_graph, MapSet.new(left_partition)}
+    {bp_graph, MapSet.new(left_partition, fn vertex -> BitGraph.V.get_vertex_index(bp_graph, vertex) end)}
   end
 
   defp assert_matching(matching, size) do
