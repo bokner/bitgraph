@@ -77,6 +77,10 @@ defmodule BitGraph do
     BitGraph.Algorithms.strongly_connected?(graph, opts)
   end
 
+  def bipartite_matching(graph, opts \\ []) do
+    BitGraph.Algorithms.bipartite_matching(graph, opts)
+  end
+
   def default_opts() do
     [
       max_vertices: 1024
