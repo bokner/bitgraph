@@ -1,7 +1,7 @@
-defmodule BitGraphTest.Algorithms.SCC do
+defmodule BitGraphTest.Algorithm.SCC do
   use ExUnit.Case
 
-  alias BitGraph.Algorithms.SCC
+  alias BitGraph.Algorithm.SCC
   alias BitGraph.Common
 
   test "Strongly connected graph" do

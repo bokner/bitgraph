@@ -1,7 +1,7 @@
-defmodule BitGraph.Algorithms.SCC.Kozaraju do
+defmodule BitGraph.Algorithm.SCC.Kozaraju do
   alias BitGraph.Dfs
 
-  import BitGraph.Algorithms.SCC.Utils
+  import BitGraph.Algorithm.SCC.Utils
 
   ## Kozaraju's SCC algorithm
   def run(graph,

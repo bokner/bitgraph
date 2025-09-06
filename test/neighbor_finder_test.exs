@@ -1,7 +1,7 @@
 defmodule BitGraphTest.NeighborFinder do
   use ExUnit.Case
 
-  alias BitGraph.Algorithms.Matching.Kuhn
+  alias BitGraph.Algorithm.Matching.Kuhn
 
   test "neighbor_finder: neighbors and edges" do
     ## Buid bipartite graph with edges oriented from left partition to right partition
@@ -87,7 +87,7 @@ defmodule BitGraphTest.NeighborFinder do
 
     ## We now build the neighbor finder that intperprets
     ## edges in bipartite matching as oriented from right to left partition
-    neighbor_finder_fun = matching_neighbor_finder(graph, partition_size)
+    neighbor_finder_fun = matching_neighbor_finder(graph)
 
     assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_finder_fun)
   end
@@ -101,10 +101,10 @@ defmodule BitGraphTest.NeighborFinder do
           BitGraph.add_edge(acc, {:L, left}, {:R, right})
       end
     neighbor_iterator = iterating_neighbor_finder(
-      matching_neighbor_finder(graph, partition_size)
+      matching_neighbor_finder(graph)
     )
 
-    ## Same as in the previous tes, but with iterable neighbor finder.
+    ## Same as in the previous test, but with iterable neighbor finder.
     assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_iterator)
 
   end
@@ -128,8 +128,22 @@ defmodule BitGraphTest.NeighborFinder do
 
   end
 
-  defp matching_neighbor_finder(graph, partition_size) do
-    %{matching: left_to_right_matching} = Kuhn.run(graph, left_partition: Enum.map(1..partition_size, fn idx -> {:L, idx} end))
+  defp matching_neighbor_finder(graph) do
+    ## Collect left partition vertices
+    left_partition = Enum.filter(BitGraph.vertices(graph), fn v -> elem(v, 0) == :L end)
+    ## Convert to vertex-index form
+    vertex_index_opts = Kuhn.init(graph, left_partition: left_partition)
+    result =
+      Kuhn.run(graph,
+        vertex_index_opts
+          # Enum.flat_map(BitGraph.vertices(graph),
+          #   fn {:L, _} = vertex -> [BitGraph.V.get_vertex_index(graph, vertex)]
+          #      {:R, _} -> []
+          # end)
+      )
+    ## Kuhn algorithm returns data based on vertex indices
+    ## We transform to 'vertex' form, using the helper
+    %{matching: left_to_right_matching} = Kuhn.finalize(graph, result)
 
     right_to_left_matching = Map.new(left_to_right_matching, fn {l, r} -> {r, l} end)
 

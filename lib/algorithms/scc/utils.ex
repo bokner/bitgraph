@@ -1,4 +1,4 @@
-defmodule BitGraph.Algorithms.SCC.Utils do
+defmodule BitGraph.Algorithm.SCC.Utils do
   def wrap_component_handler({handler_fun, initial_value}) do
     wrap_component_handler(handler_fun, initial_value)
   end

@@ -1,7 +1,38 @@
-defmodule BitGraph.Algorithms do
+defmodule BitGraph.Algorithm do
   alias BitGraph.{Dfs, Array, E, V}
-  alias BitGraph.Algorithms.{SCC, Matching}
+  alias BitGraph.Algorithm.{SCC, Matching.Kuhn}
   alias BitGraph.Traversal.Utils
+
+  @callback init(BitGraph.t(), Keyword.t()) :: any()
+  @callback run(BitGraph.t(), Keyword.t()) :: any()
+  @callback finalize(BitGraph.t(), any()) :: any()
+
+  ## Run the algorithm represented by implementation module.
+  ## If :api option is specified (false by default),
+  ## `init/2` is called first. The purpose is to modify the options supplied by the API call
+  ## into the options used internally by the algorithm implementation, which is
+  ## called by run/2 callback.
+  ## finalize/2 callback transforms the results of run/2 back to the form desired by API call.
+  ##
+  ## Why?
+  ## Sometimes we need to run an algorithm alone, without converting input and output of the algoritm
+  ## from/to caller's supplied/desired format.
+  ## For example, we may want to run bipartite matching on vertex indices several times,
+  ## without having to translate the results (matching/free nodes etc.) to vertex labels.
+  ## between runs.
+  ## More later (planned to be used for cp_solver).
+  def run(graph, impl, opts) do
+    if Keyword.get(opts, :api, false) do
+      impl.init(graph, opts)
+      |> then(fn algo_opts ->
+        result = impl.run(graph, algo_opts)
+        impl.finalize(graph, result)
+      end)
+
+    else
+      impl.run(graph, opts)
+    end
+  end
 
   def topsort(graph) do
     graph
@@ -86,7 +117,7 @@ defmodule BitGraph.Algorithms do
 
     case algo do
       :kuhn ->
-        Matching.Kuhn.run(graph, algo_opts)
+        run(graph, Kuhn, algo_opts)
       other -> throw({:bipartite_matching, :unknown_algo, other})
     end
   end

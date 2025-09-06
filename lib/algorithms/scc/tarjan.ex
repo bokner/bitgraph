@@ -1,7 +1,7 @@
-defmodule BitGraph.Algorithms.SCC.Tarjan do
+defmodule BitGraph.Algorithm.SCC.Tarjan do
   alias BitGraph.{Dfs, Array, Stack}
 
-  import BitGraph.Algorithms.SCC.Utils
+  import BitGraph.Algorithm.SCC.Utils
 
   @doc """
     Tarjan algo for SCC.

@@ -1,4 +1,4 @@
-defmodule BitGraph.Algorithms.Matching.Kuhn do
+defmodule BitGraph.Algorithm.Matching.Kuhn do
   @moduledoc """
   Maximum Matching for bipartite graph (Kuhn algorithm).
   Implementation mostly follows
@@ -11,7 +11,47 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   alias Iter.Iterable
   import BitGraph.Common
 
+  @behaviour BitGraph.Algorithm
+
   @doc """
+    Replaces vertex labels with vertex indices.
+    The modified options will be used by the implementation
+    (run/2)
+  """
+  @spec init(BitGraph.t(), Keyword.t()) :: Keyword.t()
+  @impl true
+  def init(graph, opts) do
+    case Keyword.get(opts, :left_partition) do
+      nil -> throw({:mandatory_option, :left_partition})
+      left_partition ->
+        Keyword.put(opts, :left_partition,
+        MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end))
+      end
+  end
+
+  @impl true
+  @spec finalize(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) :: %{matching: Map.t(), free: MapSet.t()} | nil
+  def finalize(_graph, nil) do
+    nil
+  end
+
+  def finalize(graph, %{matching: _indexed_matching, free: _indexed_set} = result) do
+    result
+    |> Map.update!(:matching, fn indexed ->
+      Map.new(indexed, fn {left_partition_index, right_partition_index} ->
+        {
+          BitGraph.V.get_vertex(graph, left_partition_index),
+          BitGraph.V.get_vertex(graph, right_partition_index)
+        }
+      end)
+    end)
+    |> Map.update!(:free, fn indexed ->
+      MapSet.new(indexed, fn index -> BitGraph.V.get_vertex(graph, index) end)
+    end)
+  end
+
+  @doc """
+  Kuhn algorithm (operating on vertex indices)
   `graph` - bipartite graph.
 
   Options:
@@ -24,8 +64,11 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
     - :matching - map of left_vertex => right_vertex
     - :free - unmatched vertices from right partition
   """
+
   @spec run(BitGraph.t(), Keyword.t()) ::
           %{matching: Map.t(), free: MapSet.t()} | nil
+
+  @impl true
   def run(graph, opts \\ [])
 
   def run(graph, opts) do
@@ -37,7 +80,6 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: %{matching: Map.t(), free: MapSet.t()} | nil
-
   def run(graph, left_partition, opts) when is_list(left_partition) do
     run(graph, MapSet.new(left_partition), opts)
   end
@@ -45,7 +87,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   def run(graph, left_partition, opts) when is_struct(left_partition, MapSet) do
     initial_state = initial_state(graph, left_partition, opts)
 
-    Enum.reduce_while(initial_state.left_partition_indices, initial_state, fn lp_vertex_index,
+    Enum.reduce_while(initial_state.left_partition, initial_state, fn lp_vertex_index,
                                                                               state_acc ->
       if state_acc.max_matching_size == get_matching_count(state_acc) do
         {:halt, state_acc}
@@ -66,7 +108,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp generate_initial_matching(
-         %{left_partition_indices: left_partition_indices} = state,
+         %{left_partition: left_partition_indices} = state,
          graph
        ) do
     initial_matching =
@@ -96,7 +138,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp apply_fixed_matching(
-         %{left_partition_indices: left_partition_indices} = state,
+         %{left_partition: left_partition_indices} = state,
          graph,
          fixed_matching
        ) do
@@ -156,8 +198,6 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
 
     %{
       left_partition: left_partition,
-      left_partition_indices:
-        MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end),
       used: Array.new(allocated),
       match: Array.new(allocated),
       match_count: :counters.new(1, [:atomics]),
@@ -182,7 +222,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
   end
 
   defp get_matching_impl(
-         %{left_partition_indices: left_partition_indices, match: match} = state,
+         %{left_partition: left_partition_indices, match: match} = state,
          graph
        ) do
     Enum.reduce_while(
@@ -201,7 +241,7 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
                 (!adjacent_to_left_partition?(graph, candidate_vertex_idx, left_partition_indices) &&
                    match_acc) ||
                   Map.update!(match_acc, :free, fn existing ->
-                    MapSet.put(existing, BitGraph.V.get_vertex(graph, candidate_vertex_idx))
+                    MapSet.put(existing, candidate_vertex_idx)
                   end)}}
 
             value ->
@@ -209,8 +249,8 @@ defmodule BitGraph.Algorithms.Matching.Kuhn do
                 {c + 1,
                  put_in(
                    match_acc,
-                   [:matching, BitGraph.V.get_vertex(graph, value)],
-                   BitGraph.V.get_vertex(graph, candidate_vertex_idx)
+                   [:matching, value],
+                   candidate_vertex_idx
                  )}
 
               {:cont, acc}
