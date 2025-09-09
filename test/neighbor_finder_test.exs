@@ -132,7 +132,7 @@ defmodule BitGraphTest.NeighborFinder do
     ## Collect left partition vertices
     left_partition = Enum.filter(BitGraph.vertices(graph), fn v -> elem(v, 0) == :L end)
     ## Convert to vertex-index form
-    vertex_index_opts = Kuhn.init(graph, left_partition: left_partition)
+    vertex_index_opts = Kuhn.preprocess(graph, left_partition: left_partition)
     result =
       Kuhn.run(graph,
         vertex_index_opts
@@ -143,7 +143,7 @@ defmodule BitGraphTest.NeighborFinder do
       )
     ## Kuhn algorithm returns data based on vertex indices
     ## We transform to 'vertex' form, using the helper
-    %{matching: left_to_right_matching} = Kuhn.finalize(graph, result)
+    %{matching: left_to_right_matching} = Kuhn.postprocess(graph, result)
 
     right_to_left_matching = Map.new(left_to_right_matching, fn {l, r} -> {r, l} end)
 

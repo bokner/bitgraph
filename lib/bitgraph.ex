@@ -78,7 +78,7 @@ defmodule BitGraph do
   end
 
   def bipartite_matching(graph, opts \\ []) do
-    BitGraph.Algorithm.bipartite_matching(graph, Keyword.put(opts, :api, true))
+    BitGraph.Algorithm.bipartite_matching(graph, Keyword.put(opts, :process_mode, :both))
   end
 
   def default_opts() do

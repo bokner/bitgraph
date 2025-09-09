@@ -3,16 +3,15 @@ defmodule BitGraph.Algorithm do
   alias BitGraph.Algorithm.{SCC, Matching.Kuhn}
   alias BitGraph.Traversal.Utils
 
-  @callback init(BitGraph.t(), Keyword.t()) :: any()
+  @callback preprocess(BitGraph.t(), Keyword.t()) :: Keyword.t()
   @callback run(BitGraph.t(), Keyword.t()) :: any()
-  @callback finalize(BitGraph.t(), any()) :: any()
+  @callback postprocess(BitGraph.t(), any()) :: any()
 
   ## Run the algorithm represented by implementation module.
-  ## If :api option is specified (false by default),
-  ## `init/2` is called first. The purpose is to modify the options supplied by the API call
+  ## `preprocess/2` prepares the options supplied by the API call
   ## into the options used internally by the algorithm implementation, which is
   ## called by run/2 callback.
-  ## finalize/2 callback transforms the results of run/2 back to the form desired by API call.
+  ## postprocess/2 callback transforms the results of run/2 back to the form desired by the caller of BitGraph API.
   ##
   ## Why?
   ## Sometimes we need to run an algorithm alone, without converting input and output of the algoritm
@@ -20,19 +19,42 @@ defmodule BitGraph.Algorithm do
   ## For example, we may want to run bipartite matching on vertex indices several times,
   ## without having to translate the results (matching/free nodes etc.) to vertex labels.
   ## between runs.
+  ## The :process_mode defines the order of calls as follows:
+  ## :preprocess - preprocess/2 -> run/2
+  ## :postprocess - run/2 -> postprocess/2
+  ## :both - calls preprocess/2 -> run/2 -> postprocess/2
+  ## :none - run/2 (default)
   ## More later (planned to be used for cp_solver).
   def run(graph, impl, opts) do
-    if Keyword.get(opts, :api, false) do
-      impl.init(graph, opts)
-      |> then(fn algo_opts ->
-        result = impl.run(graph, algo_opts)
-        impl.finalize(graph, result)
-      end)
-
-    else
-      impl.run(graph, opts)
+    case Keyword.get(opts, :process_mode, :none) do
+      :none ->
+        impl.run(graph, opts)
+      :both ->
+        impl.preprocess(graph, opts)
+        |> then(fn algo_opts ->
+          result = impl.run(graph, algo_opts)
+          impl.postprocess(graph, result)
+        end)
+      :preprocess ->
+        with_preprocess(graph, impl, opts)
+      :postprocess ->
+        with_postprocess(graph, impl, opts)
     end
   end
+
+  defp with_preprocess(graph, impl, opts) do
+        impl.preprocess(graph, opts)
+        |> then(fn algo_opts ->
+          impl.run(graph, algo_opts)
+        end)
+  end
+
+  defp with_postprocess(graph, impl, opts) do
+    result = impl.run(graph, opts)
+    impl.postprocess(graph, result)
+  end
+
+
 
   def topsort(graph) do
     graph

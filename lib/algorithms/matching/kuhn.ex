@@ -18,9 +18,9 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
     The modified options will be used by the implementation
     (run/2)
   """
-  @spec init(BitGraph.t(), Keyword.t()) :: Keyword.t()
+  @spec preprocess(BitGraph.t(), Keyword.t()) :: Keyword.t()
   @impl true
-  def init(graph, opts) do
+  def preprocess(graph, opts) do
     case Keyword.get(opts, :left_partition) do
       nil -> throw({:mandatory_option, :left_partition})
       left_partition ->
@@ -30,12 +30,12 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
   end
 
   @impl true
-  @spec finalize(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) :: %{matching: Map.t(), free: MapSet.t()} | nil
-  def finalize(_graph, nil) do
+  @spec postprocess(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) :: %{matching: Map.t(), free: MapSet.t()} | nil
+  def postprocess(_graph, nil) do
     nil
   end
 
-  def finalize(graph, %{matching: _indexed_matching, free: _indexed_set} = result) do
+  def postprocess(graph, %{matching: _indexed_matching, free: _indexed_set} = result) do
     result
     |> Map.update!(:matching, fn indexed ->
       Map.new(indexed, fn {left_partition_index, right_partition_index} ->
