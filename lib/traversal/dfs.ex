@@ -1,5 +1,5 @@
 defmodule BitGraph.Dfs do
-  alias BitGraph.V
+  alias BitGraph.{V, Array, Algorithm}
   alias BitGraph.Neighbor, as: N
   alias BitGraph.Array
   import BitGraph.Common
@@ -9,6 +9,8 @@ defmodule BitGraph.Dfs do
   Implementation roughly follows
   https://cp-algorithms.com/graph/depth-first-search.html
   """
+
+  @behaviour Algorithm
 
   @white_vertex 0
   @gray_vertex 1
@@ -30,16 +32,17 @@ defmodule BitGraph.Dfs do
         - before and after (:both)
   """
 
+  @impl true
   def run(graph, opts \\ []) do
     graph = update_graph_opts(graph, opts)
-    vertices = build_vertices(graph, Keyword.get(opts, :vertices, :all))
+    vertices = Keyword.get(opts, :vertices, [])
     initial_state = Keyword.get(opts, :state) || (
       case vertices do
         [] -> nil
         list when is_struct(vertices, MapSet) or is_list(vertices) ->
           Enum.empty?(list) && nil || init_dfs(graph, opts)
-        _other ->
-          throw({:error, :invalid_vertex_list})
+        other ->
+          throw({:error, {:invalid_vertex_list, other}})
         end
     )
 
@@ -61,6 +64,12 @@ defmodule BitGraph.Dfs do
     end)
   end
 
+  @impl true
+  def preprocess(graph, opts) do
+    vertex_indices = build_vertices(graph, Keyword.get(opts, :vertices, :all))
+    Keyword.put(opts, :vertices, vertex_indices)
+  end
+
   defp build_vertices(graph, :all) do
     BitGraph.vertex_indices(graph)
   end
@@ -71,6 +80,11 @@ defmodule BitGraph.Dfs do
 
   defp build_vertices(_graph, vertices) when is_list(vertices) or is_struct(vertices, MapSet) do
     vertices
+  end
+
+  @impl true
+  def postprocess(_graph, result) do
+    result
   end
 
   defp init_dfs(graph, opts) do

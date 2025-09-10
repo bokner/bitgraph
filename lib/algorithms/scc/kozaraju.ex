@@ -1,9 +1,13 @@
 defmodule BitGraph.Algorithm.SCC.Kozaraju do
-  alias BitGraph.Dfs
+  alias BitGraph.{Dfs, Algorithm}
 
   import BitGraph.Algorithm.SCC.Utils
+  import BitGraph.Algorithm
+
+  @behaviour Algorithm
 
   ## Kozaraju's SCC algorithm
+  @impl true
   def run(graph,
       opts \\ []
     ) do
@@ -15,11 +19,11 @@ defmodule BitGraph.Algorithm.SCC.Kozaraju do
       |> wrap_component_handler()
 
     graph
-    |> Dfs.run(opts)
+    |> dfs(opts)
     |> Dfs.order(:out, :desc)
     |> Enum.reduce({nil, nil}, fn v, {state_acc, components_acc} ->
       state =
-        Dfs.run(graph, vertices: v,
+        dfs(graph, vertices: v,
           direction: :reverse,
           state: state_acc,
           process_vertex_fun: fn %{acc: acc} = _state, vertex ->
@@ -35,6 +39,16 @@ defmodule BitGraph.Algorithm.SCC.Kozaraju do
       }
     end)
     |> elem(1))
+  end
+
+  @impl true
+  def preprocess(graph, opts) do
+    Dfs.preprocess(graph, opts)
+  end
+
+  @impl true
+  def postprocess(_graph, res) do
+    res
   end
 
   def strongly_connected?(graph, opts \\ []) do

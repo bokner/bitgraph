@@ -1,8 +1,7 @@
 defmodule BitGraph.Algorithm do
   alias BitGraph.{Dfs, Array, E, V}
   alias BitGraph.Algorithm.{SCC, Matching.Kuhn}
-  alias BitGraph.Traversal.Utils
-
+  
   @callback preprocess(BitGraph.t(), Keyword.t()) :: Keyword.t()
   @callback run(BitGraph.t(), Keyword.t()) :: any()
   @callback postprocess(BitGraph.t(), any()) :: any()
@@ -54,11 +53,13 @@ defmodule BitGraph.Algorithm do
     impl.postprocess(graph, result)
   end
 
-
+  def dfs(graph, opts \\ []) do
+    run(graph, BitGraph.Dfs, Keyword.put_new(opts, :process_mode, :both))
+  end
 
   def topsort(graph) do
     graph
-    |> Dfs.run()
+    |> dfs()
     |> then(fn state ->
       Dfs.acyclic?(state) && Dfs.order(state, :out, :desc) || false
     end)
@@ -68,7 +69,7 @@ defmodule BitGraph.Algorithm do
     graph
     |> BitGraph.vertex_indices()
     |> Enum.reduce_while(nil, fn v, state_acc ->
-      state_acc = Dfs.run(graph, vertices: v, state: state_acc)
+      state_acc = dfs(graph, vertices: v, state: state_acc)
       Dfs.acyclic?(state_acc) && {:halt, true} || {:cont, state_acc}
     end)
     |> then(
@@ -89,7 +90,7 @@ defmodule BitGraph.Algorithm do
   end
 
   def components(graph) do
-    Dfs.run(graph, direction: :both, process_vertex_fun:
+    dfs(graph, direction: :both, process_vertex_fun:
       fn %{component_top: root, acc: acc} = _state, v  ->
         case acc do
           nil -> %{root => MapSet.new([root, v])}
@@ -104,14 +105,9 @@ defmodule BitGraph.Algorithm do
   end
 
   def strong_components(graph, opts \\ []) do
-    opts = Keyword.merge(
-    [
-      algorithm: :kozaraju
-    ], Keyword.put(opts, :vertices, Utils.build_vertex_indices(graph, Keyword.get(opts, :vertices, :all))))
-
-    case opts[:algorithm] do
-      :tarjan -> SCC.Tarjan.run(graph, opts)
-      :kozaraju -> SCC.Kozaraju.run(graph, opts)
+    case Keyword.get(opts, :algorithm, :tarjan) do
+      :tarjan -> run(graph, SCC.Tarjan, opts)
+      :kozaraju -> run(graph, SCC.Kozaraju, opts)
       unknown -> throw({:error, {:scc_unknown_algo, unknown}})
     end
   end
@@ -119,7 +115,7 @@ defmodule BitGraph.Algorithm do
 
   def get_cycle(graph, vertex) when is_integer(vertex) do
     if V.in_degree(graph, vertex) > 0 && V.out_degree(graph, vertex) > 0 do
-      Dfs.run(graph, vertices: vertex, process_edge_fun:
+      dfs(graph, vertices: vertex, process_edge_fun:
         fn state, vertex, _neighbor, :back  ->
               {:stop,
                 build_cycle(graph, vertex, state[:parent])

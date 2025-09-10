@@ -1,7 +1,7 @@
 defmodule BitGraphTest.Dfs do
   use ExUnit.Case
 
-  alias BitGraph.Dfs
+  import BitGraph.Algorithm
 
   test "edge classification" do
     tree_edges = [{1, 2}, {2, 4}, {4, 6}, {1, 3}, {3, 5}, {5, 7}, {5, 8}]
@@ -13,7 +13,7 @@ defmodule BitGraphTest.Dfs do
     graph = BitGraph.new() |> BitGraph.add_vertices(1..8) |> BitGraph.add_edges(all_edges)
 
     type_map =
-    Dfs.run(graph, process_edge_fun:
+    dfs(graph, process_edge_fun:
       fn %{acc: acc} = _state, from, to, edge_type ->
         [{edge_type, {from, to}} | acc || []]
       end
@@ -30,7 +30,7 @@ defmodule BitGraphTest.Dfs do
 
   test "Dfs on empty graph" do
     graph = BitGraph.new()
-    assert Dfs.run(graph) == nil
+    assert dfs(graph) == nil
   end
 
   defp assert_equal_edges(type_map, type, edges) do

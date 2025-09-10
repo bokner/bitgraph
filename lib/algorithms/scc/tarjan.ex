@@ -1,20 +1,26 @@
 defmodule BitGraph.Algorithm.SCC.Tarjan do
-  alias BitGraph.{Dfs, Array, Stack}
+  alias BitGraph.{Dfs, Array, Stack, Algorithm}
 
   import BitGraph.Algorithm.SCC.Utils
+
+  import BitGraph.Algorithm
+
+  @behaviour Algorithm
+
 
   @doc """
     Tarjan algo for SCC.
     Roughly follows https://blog.heycoach.in/tarjans-algorithm-in-graph-theory/
   """
 
+  @impl true
   def run(
         graph,
         opts \\ []
       ) do
     (BitGraph.num_vertices(graph) == 0 && []) ||
       graph
-      |> Dfs.run(
+      |> dfs(
         Keyword.merge(opts,
           [
             process_vertex_fun: fn state, v, event ->
@@ -44,6 +50,16 @@ defmodule BitGraph.Algorithm.SCC.Tarjan do
         ])
         )
       |> get_in([:acc, :sccs])
+  end
+
+  @impl true
+  def preprocess(graph, opts) do
+    Dfs.preprocess(graph, opts)
+  end
+
+  @impl true
+  def postprocess(_graph, res) do
+    res
   end
 
   def strongly_connected?(graph, opts \\ []) do
