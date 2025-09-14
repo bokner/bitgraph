@@ -145,6 +145,10 @@ defmodule BitGraph do
     vertex && V.isolated?(graph, V.get_vertex_index(graph, vertex))
   end
 
+  def leaf_vertex?(graph, vertex) do
+    vertex && V.leaf?(graph, V.get_vertex_index(graph, vertex))
+  end
+
   def delete_vertex(graph, vertex) do
     case V.get_vertex_index(graph, vertex) do
       nil -> graph

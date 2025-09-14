@@ -216,4 +216,16 @@ defmodule BitGraph.V do
     && out_neighbors(graph, vertex) |> Iterable.empty?()
 
   end
+
+  def leaf?(_graph, nil), do: false
+  def leaf?(graph, vertex) do
+    iterate_neighbors(graph, vertex, 0, fn _neighbor, acc ->
+      if acc >= 1 do
+        {:halt, false}
+      else
+        {:cont, acc + 1}
+      end
+    end, :both)
+    |> Kernel.if(do: true)
+  end
 end

@@ -158,9 +158,13 @@ defmodule BitGraphTest do
       assert BitGraph.in_degree(graph, :c) == 0
       assert BitGraph.out_degree(graph, :c) == 0
       refute BitGraph.isolated_vertex?(graph, :c)
+      ## Leaf vertex
+      graph = BitGraph.add_edge(graph, :a, :c)
+      refute BitGraph.leaf_vertex?(graph, :a)
+      assert Enum.all?([:b, :c], fn v -> BitGraph.leaf_vertex?(graph, v) end)
       ## Isolated vertex
       graph = BitGraph.delete_edge(graph, :a, :b)
-      assert BitGraph.isolated_vertex?(graph, :a) && BitGraph.isolated_vertex?(graph, :b)
+      assert BitGraph.isolated_vertex?(graph, :b)
 
     end
 
