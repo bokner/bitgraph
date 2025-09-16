@@ -1,7 +1,15 @@
 defmodule BitGraph.Queue do
   alias BitGraph.Array
-  def new(max_capacity) when is_integer(max_capacity) and max_capacity > 0 do
-    {max_capacity, Array.new(max_capacity + 2)}
+
+  ## Circular queue
+  ## The internal structure:
+  ## `size` is located at `arr[capacity + 1]` and has the current queue size;
+  ## `front_pointer` is located at `arr[capacity + 2]` and has a 0-based pointer to the current `front` element
+  ## , that is: arr[arr[capacity + 2] + 1] = front
+  ##
+  def new(capacity) when is_integer(capacity) and capacity > 0 do
+    ref = Array.new(capacity + 2)
+    {capacity, ref}
   end
 
   def size({capacity, ref} = _queue) do
@@ -17,10 +25,12 @@ defmodule BitGraph.Queue do
   end
 
   def front({_capacity, ref} = queue) do
-    Array.get(ref, front_pointer(queue))
+    if !empty?(queue) do
+      get0(ref, front_pointer(queue))
+    end
   end
 
-  defp front_pointer({capacity, ref} = _queue) do
+  def front_pointer({capacity, ref} = _queue) do
     Array.get(ref, front_address(capacity))
   end
 
@@ -29,19 +39,21 @@ defmodule BitGraph.Queue do
   end
 
   def rear({_capacity, ref} = queue) do
-    pointer = rear_pointer(queue)
-    Array.get(ref, pointer)
+    if !empty?(queue) do
+      pointer = rear_pointer(queue)
+      get0(ref, pointer)
+    end
   end
 
-  defp rear_pointer({capacity, ref} = queue) do
-    rem(front_pointer(queue) + size(queue), capacity)
+  def rear_pointer({capacity, _ref} = queue) do
+    rem(front_pointer(queue) + size(queue) - 1, capacity)
   end
 
   def enqueue({capacity, ref} = queue, element) do
     current_size = size(queue)
     if current_size == capacity, do: throw(:queue_over_capacity)
-    Array.put(ref, rear_pointer(queue), element)
-    Array.put(ref, size_address(queue), current_size + 1)
+    put0(ref, rem(front_pointer(queue) + current_size, capacity), element)
+    Array.put(ref, size_address(capacity), current_size + 1)
   end
 
   def dequeue({capacity, ref} = queue) do
@@ -49,9 +61,22 @@ defmodule BitGraph.Queue do
         0 -> nil
         current_size ->
           pointer = front_pointer(queue)
-          Array.put(ref, size_address(queue), current_size - 1)
+          Array.put(ref, size_address(capacity), current_size - 1)
           Array.put(ref, front_address(capacity), rem(pointer + 1, capacity))
-          Array.get(ref, pointer)
+          get0(ref, pointer)
         end
+  end
+
+  def from_list(list) do
+    new(length(list))
+    |> tap(fn queue -> Enum.each(list, fn el -> enqueue(queue, el) end) end)
+  end
+
+  defp get0(arr, idx) do
+    Array.get(arr, idx + 1)
+  end
+
+  defp put0(arr, idx, value) do
+    Array.put(arr, idx + 1, value)
   end
 end
