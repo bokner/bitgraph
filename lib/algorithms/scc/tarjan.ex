@@ -1,7 +1,9 @@
 defmodule BitGraph.Algorithm.SCC.Tarjan do
-  alias BitGraph.{Dfs, Array, Stack, Algorithm}
+  alias BitGraph.{Dfs, Algorithm}
 
   import BitGraph.Algorithm.SCC.Utils
+
+  alias InPlace.{Array, Stack}
 
   import BitGraph.Algorithm
 
@@ -89,8 +91,8 @@ defmodule BitGraph.Algorithm.SCC.Tarjan do
 
     %{
       stack: Stack.new(num_vertices),
-      on_stack: Array.new(num_vertices),
-      lowest: Array.new(num_vertices),
+      on_stack: Array.new(num_vertices, 0),
+      lowest: Array.new(num_vertices, 0),
       sccs: nil
     }
   end

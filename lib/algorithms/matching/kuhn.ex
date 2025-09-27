@@ -7,7 +7,7 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
   """
 
   alias BitGraph.V
-  alias BitGraph.Array
+  alias InPlace.Array
   alias Iter.Iterable
   import BitGraph.Common
 
@@ -198,8 +198,8 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
 
     %{
       left_partition: left_partition,
-      used: Array.new(allocated),
-      match: Array.new(allocated),
+      used: Array.new(allocated, 0),
+      match: Array.new(allocated, 0),
       match_count: :counters.new(1, [:atomics]),
       max_matching_size: MapSet.size(left_partition),
       required_size: Keyword.get(opts, :required_size)
@@ -235,7 +235,7 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
           {:cont, acc}
         else
           case get_match(state, candidate_vertex_idx) do
-            value when value == 0 ->
+            0 ->
               {:cont,
                {c,
                 (!adjacent_to_left_partition?(graph, candidate_vertex_idx, left_partition_indices) &&

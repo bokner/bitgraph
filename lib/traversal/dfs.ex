@@ -1,7 +1,7 @@
 defmodule BitGraph.Dfs do
-  alias BitGraph.{V, Array, Algorithm}
+  alias BitGraph.{V, Algorithm}
   alias BitGraph.Neighbor, as: N
-  alias BitGraph.Array
+  alias InPlace.Array
   import BitGraph.Common
 
   @moduledoc """
@@ -111,12 +111,12 @@ defmodule BitGraph.Dfs do
       #### black, if the vertex was visited
       #### gray,  if dfs has already exited the vertex.
       ####
-      color: Array.new(max_index),
+      color: Array.new(max_index, 0),
       ## Time of dfs entering the vertex
-      time_in: Array.new(max_index),
+      time_in: Array.new(max_index, 0),
       ## Time of dfs exiting vertex
-      time_out: Array.new(max_index),
-      parent: Array.new(max_index),
+      time_out: Array.new(max_index, 0),
+      parent: Array.new(max_index, 0),
       acc: nil
     }
   end

@@ -1,7 +1,8 @@
 defmodule BitGraph.Algorithm do
-  alias BitGraph.{Dfs, Array, E, V}
+  alias BitGraph.{Dfs, E, V}
   alias BitGraph.Algorithm.{SCC, Matching.Kuhn}
-  
+  alias InPlace.Array
+
   @callback preprocess(BitGraph.t(), Keyword.t()) :: Keyword.t()
   @callback run(BitGraph.t(), Keyword.t()) :: any()
   @callback postprocess(BitGraph.t(), any()) :: any()

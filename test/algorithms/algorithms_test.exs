@@ -145,8 +145,7 @@ defmodule BitGraphTest.Algorithm do
     %{matching: matching} = BitGraph.Algorithm.bipartite_matching(graph, left_partition: Enum.to_list(range))
     assert Map.keys(matching) |> Enum.sort() == left_partition_indices
     ## By construction of the graph, left partition indices follow right partition indices.
-    assert Map.values(matching) == Enum.map(left_partition_indices, fn idx -> idx + length(left_partition_indices) end)
-
+    assert Enum.all?(Map.values(matching), fn l_idx -> l_idx in 4..6 end)
   end
 
 

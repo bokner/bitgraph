@@ -24,6 +24,7 @@ defmodule Bitgraph.MixProject do
   defp deps do
     [
       {:libgraph, "~> 0.16.0", only: :dev, runtime: false},
+      {:inplace, "~> 0.1"},
       {:arrays, "~> 2.1"},
       {:arrays_aja, "~> 0.2.0"},
       {:math, "~> 0.7.0", only: :test},
