@@ -1,10 +1,10 @@
-defmodule Bitgraph.MixProject do
+defmodule BitGraph.MixProject do
   use Mix.Project
 
   def project do
     [
       app: :bitgraph,
-      version: "0.3.3",
+      version: "0.3.4",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
