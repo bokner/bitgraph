@@ -10,6 +10,8 @@ defmodule BitGraph.Algorithm.Search.AStar do
   import BitGraph
   alias BitGraph.V
 
+  @infinity :infinity
+
   def run(graph, start_vertex, goal_vertex, opts)
       when is_integer(start_vertex) and is_integer(goal_vertex) do
     dist_fun = Keyword.get(opts, :dist_fun, fn _v1, _v2 -> 1 end)
@@ -38,7 +40,7 @@ defmodule BitGraph.Algorithm.Search.AStar do
       start: start_vertex,
       goal: goal_vertex,
       open_set: p_queue,
-      g_score: Map.new(),
+      g_score: Map.new([{start_vertex, 0}]),
       path: path,
       h_fun: h_fun,
       dist_fun: dist_fun
@@ -59,26 +61,21 @@ defmodule BitGraph.Algorithm.Search.AStar do
     if Q.empty?(open_set) do
       :failure
     else
-      {vertex, {_min_fscore, min_gscore}} = Q.extract_min(open_set)
+      {vertex, _min_fscore} = Q.extract_min(open_set)
 
       if vertex == goal do
         reconstruct_path(path)
       else
+        g_score = Map.get(g_score_map, vertex)
+
         updated_g_scores =
           Enum.reduce(V.out_neighbors(graph, vertex), g_score_map, fn neighbor, g_score_acc ->
             ### Pseudocode
-            tentative_g_score = min_gscore + dist_fun.(vertex, neighbor)
+            tentative_g_score = g_score + dist_fun.(vertex, neighbor)
 
-            ## TODO:
-            ## For now, we assume that the heuristics is consistent.
-            ## See the remark  to
-            ## https://en.wikipedia.org/wiki/A*_search_algorithm#:~:text=%5B11%5D-,Pseudocode,-%5Bedit%5D
-            ## Hence, the next line is commented out.
-            if tentative_g_score < Map.get(g_score_acc, neighbor, 0) do
+            if tentative_g_score < Map.get(g_score_acc, neighbor, @infinity) do
               #  This path to neighbor is better than any previous one. Record it!
               Array.put(path, neighbor, vertex)
-              #     fScore[neighbor] := tentative_gScore + h(neighbor)
-              #     if neighbor not in openSet
               Q.insert(
                 open_set,
                 neighbor,
