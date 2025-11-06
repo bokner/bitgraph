@@ -79,7 +79,7 @@ defmodule BitGraph.Algorithm.Search.AStar do
               Q.insert(
                 open_set,
                 neighbor,
-                {tentative_g_score + h_fun.(neighbor), tentative_g_score}
+                tentative_g_score + h_fun.(neighbor)
               )
 
               Map.put(g_score_acc, neighbor, tentative_g_score)
