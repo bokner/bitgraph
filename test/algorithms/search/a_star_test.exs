@@ -1,5 +1,5 @@
 defmodule BitGraphTest.Algorithm.Search.AStar do
-  alias BitGraph.Algorithm.Matching.Kuhn
+  alias BitGraph.Algorithm.Search.AStar
   use ExUnit.Case, async: false
 
   describe "A* search" do
