@@ -29,24 +29,27 @@ defmodule BitGraph.Algorithm do
     case Keyword.get(opts, :process_mode, :none) do
       :none ->
         impl.run(graph, opts)
+
       :both ->
         impl.preprocess(graph, opts)
         |> then(fn algo_opts ->
           result = impl.run(graph, algo_opts)
           impl.postprocess(graph, result)
         end)
+
       :preprocess ->
         with_preprocess(graph, impl, opts)
+
       :postprocess ->
         with_postprocess(graph, impl, opts)
     end
   end
 
   defp with_preprocess(graph, impl, opts) do
-        impl.preprocess(graph, opts)
-        |> then(fn algo_opts ->
-          impl.run(graph, algo_opts)
-        end)
+    impl.preprocess(graph, opts)
+    |> then(fn algo_opts ->
+      impl.run(graph, algo_opts)
+    end)
   end
 
   defp with_postprocess(graph, impl, opts) do
@@ -62,7 +65,7 @@ defmodule BitGraph.Algorithm do
     graph
     |> dfs()
     |> then(fn state ->
-      Dfs.acyclic?(state) && Dfs.order(state, :out, :desc) || false
+      (Dfs.acyclic?(state) && Dfs.order(state, :out, :desc)) || false
     end)
   end
 
@@ -71,38 +74,46 @@ defmodule BitGraph.Algorithm do
     |> BitGraph.vertex_indices()
     |> Enum.reduce_while(nil, fn v, state_acc ->
       state_acc = dfs(graph, vertices: v, state: state_acc)
-      Dfs.acyclic?(state_acc) && {:halt, true} || {:cont, state_acc}
+      (Dfs.acyclic?(state_acc) && {:halt, true}) || {:cont, state_acc}
     end)
-    |> then(
-      fn true -> true
+    |> then(fn
+      true -> true
       _ -> false
     end)
   end
 
   def strongly_connected?(graph, opts \\ []) do
     algo = Keyword.get(opts, :algorithm) || :tarjan
+
     case algo do
       :kozaraju ->
         SCC.Kozaraju.strongly_connected?(graph, opts)
+
       :tarjan ->
         SCC.Tarjan.strongly_connected?(graph, opts)
-      other -> throw({:scc, :unknown_algo, other})
+
+      other ->
+        throw({:scc, :unknown_algo, other})
     end
   end
 
   def components(graph) do
-    dfs(graph, direction: :both, process_vertex_fun:
-      fn %{component_top: root, acc: acc} = _state, v  ->
+    dfs(graph,
+      direction: :both,
+      process_vertex_fun: fn %{component_top: root, acc: acc} = _state, v ->
         case acc do
-          nil -> %{root => MapSet.new([root, v])}
+          nil ->
+            %{root => MapSet.new([root, v])}
+
           existing ->
-            Map.update(existing, root, MapSet.new([root]),
-            fn component -> MapSet.put(component, v) end)
-          end
+            Map.update(existing, root, MapSet.new([root]), fn component ->
+              MapSet.put(component, v)
+            end)
+        end
       end
-      )
-      |> Map.get(:acc)
-      |> Map.values()
+    )
+    |> Map.get(:acc)
+    |> Map.values()
   end
 
   def strong_components(graph, opts \\ []) do
@@ -113,16 +124,16 @@ defmodule BitGraph.Algorithm do
     end
   end
 
-
   def get_cycle(graph, vertex) when is_integer(vertex) do
     if V.in_degree(graph, vertex) > 0 && V.out_degree(graph, vertex) > 0 do
-      dfs(graph, vertices: vertex, process_edge_fun:
-        fn state, vertex, _neighbor, :back  ->
-              {:stop,
-                build_cycle(graph, vertex, state[:parent])
-              }
-           %{acc: acc} = _state, _vertex, _neighbor, _event ->
-              {:next, acc}
+      dfs(graph,
+        vertices: vertex,
+        process_edge_fun: fn
+          state, vertex, _neighbor, :back ->
+            {:stop, build_cycle(graph, vertex, state[:parent])}
+
+          %{acc: acc} = _state, _vertex, _neighbor, _event ->
+            {:next, acc}
         end
       )
       |> Map.get(:acc)
@@ -137,29 +148,30 @@ defmodule BitGraph.Algorithm do
     case algo do
       :kuhn ->
         run(graph, Kuhn, algo_opts)
-      other -> throw({:bipartite_matching, :unknown_algo, other})
+
+      other ->
+        throw({:bipartite_matching, :unknown_algo, other})
     end
   end
 
-    ## Build cycle starting from vertex
-    defp build_cycle(graph, start_vertex, parents_ref) do
-      build_cycle(graph, start_vertex, parents_ref, [start_vertex])
-    end
+  ## Build cycle starting from vertex
+  defp build_cycle(graph, start_vertex, parents_ref) do
+    build_cycle(graph, start_vertex, parents_ref, [start_vertex])
+  end
 
-    ## Move from vertices to their parents starting from given vertex
-    defp build_cycle(graph, start_vertex, parents_ref, acc) do
-      build_cycle(graph, start_vertex, Array.get(parents_ref, start_vertex), parents_ref, acc)
-    end
+  ## Move from vertices to their parents starting from given vertex
+  defp build_cycle(graph, start_vertex, parents_ref, acc) do
+    build_cycle(graph, start_vertex, Array.get(parents_ref, start_vertex), parents_ref, acc)
+  end
 
-    defp build_cycle(graph, start_vertex, vertex, parents_ref, acc) do
-      # Stop if we find vertex that is an out-neighbor of the vertex
-      # we started with.
-      if E.edge?(graph, start_vertex, vertex) do
-        [vertex | acc]
-      else
-        next_vertex = Array.get(parents_ref, vertex)
-        build_cycle(graph, start_vertex, next_vertex, parents_ref, [vertex | acc])
-      end
+  defp build_cycle(graph, start_vertex, vertex, parents_ref, acc) do
+    # Stop if we find vertex that is an out-neighbor of the vertex
+    # we started with.
+    if E.edge?(graph, start_vertex, vertex) do
+      [vertex | acc]
+    else
+      next_vertex = Array.get(parents_ref, vertex)
+      build_cycle(graph, start_vertex, next_vertex, parents_ref, [vertex | acc])
     end
-
+  end
 end

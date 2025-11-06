@@ -2,57 +2,105 @@ defmodule BitGraph.Algorithm.Search.AStar do
   @doc """
     A* algorithm.
     Finds the shortest path in graph from `start` vertex to `goal` vertex.
-    `dist` is a matrix of distances between vertices.
-    `h` is a "heuristic", a function h(n) that estimates the cost to reach goal from node n.
+    `dist_fun` is a function that takes 2 vertex indices and returns the distance between them.
+    `h` is a "heuristic", a function h(n) that estimates the cost to reach goal vertex from node n.
   """
   alias InPlace.PriorityQueue, as: Q
   alias InPlace.Array
   import BitGraph
   alias BitGraph.V
 
-  def run(graph, start, goal, dist, h) when is_integer(start) and is_integer(goal)
-    and is_function(h, 1) do
-      {open_set, g_score, f_score} = init(graph, start, h)
-      iterate(graph, goal, open_set, g_score, f_score, h, dist, Map.new())
-      |> finalize()
+  def run(graph, start_vertex, goal_vertex, opts)
+      when is_integer(start_vertex) and is_integer(goal_vertex) do
+    dist_fun = Keyword.get(opts, :dist_fun, fn _v1, _v2 -> 1 end)
+    h_fun = Keyword.get(opts, :h_fun, fn _vertex -> 0 end)
+    run(graph, start_vertex, goal_vertex, h_fun, dist_fun)
   end
 
-  defp init(graph, start, h) do
-      n_vertices = num_vertices(graph)
-      p_queue = Q.new(n_vertices)
-      Q.insert(p_queue, start, 0)
-      g_score = Array.new(n_vertices)
-      f_score = Array.new(n_vertices)
-      Array.put(g_score, 0, 0)
-      Array.put(f_score, 0, h.(start))
-      {p_queue, g_score, f_score}
+  def run(graph, start_vertex, goal_vertex, h_fun, dist_fun)
+      when is_integer(start_vertex) and is_integer(goal_vertex) and
+             is_function(h_fun, 1) and is_function(dist_fun, 2) do
+    instance = init(graph, start_vertex, goal_vertex, h_fun, dist_fun)
+
+    iterate(graph, instance)
+    |> finalize()
   end
 
-  defp iterate(graph, goal, open_set, g_score, f_score, h, dist, path) do
+  defp init(graph, start_vertex, goal_vertex, h_fun, dist_fun) do
+    n_vertices = num_vertices(graph)
+    p_queue = Q.new(n_vertices)
+    Q.insert(p_queue, start_vertex, {h_fun.(start_vertex), 0})
+    path = Array.new(n_vertices)
+    # Array.put(g_score, 0, 0)
+    # Array.put(f_score, 0, h_fun.(start_vertex))
+    %{
+      num_vertices: n_vertices,
+      start: start_vertex,
+      goal: goal_vertex,
+      open_set: p_queue,
+      g_score: Map.new(),
+      path: path,
+      h_fun: h_fun,
+      dist_fun: dist_fun
+    }
+  end
+
+  defp iterate(
+         graph,
+         %{
+           goal: goal,
+           path: path,
+           open_set: open_set,
+           g_score: g_score_map,
+           h_fun: h_fun,
+           dist_fun: dist_fun
+         } = state
+       ) do
     if Q.empty?(open_set) do
       :failure
     else
-      {vertex, _priority} = Q.extract_min(open_set)
+      {vertex, {_min_fscore, min_gscore}} = Q.extract_min(open_set)
+
       if vertex == goal do
-        path
+        reconstruct_path(path)
       else
-        Enum.reduce(V.out_neighbors(graph, vertex), path, fn neighbor, acc ->
-          ### Pseudocode
-            # tentative_gScore := gScore[current] + d(current, neighbor)
-            # if tentative_gScore < gScore[neighbor]
-            #     // This path to neighbor is better than any previous one. Record it!
-            #     cameFrom[neighbor] := current
-            #     gScore[neighbor] := tentative_gScore
-            #     fScore[neighbor] := tentative_gScore + h(neighbor)
-            #     if neighbor not in openSet
-            #         openSet.add(neighbor)
-        end)
+        updated_g_scores =
+          Enum.reduce(V.out_neighbors(graph, vertex), g_score_map, fn neighbor, g_score_acc ->
+            ### Pseudocode
+            tentative_g_score = min_gscore + dist_fun.(vertex, neighbor)
+
+            ## TODO:
+            ## For now, we assume that the heuristics is consistent.
+            ## See the remark  to
+            ## https://en.wikipedia.org/wiki/A*_search_algorithm#:~:text=%5B11%5D-,Pseudocode,-%5Bedit%5D
+            ## Hence, the next line is commented out.
+            if tentative_g_score < Map.get(g_score_acc, neighbor, 0) do
+              #  This path to neighbor is better than any previous one. Record it!
+              Array.put(path, neighbor, vertex)
+              #     fScore[neighbor] := tentative_gScore + h(neighbor)
+              #     if neighbor not in openSet
+              Q.insert(
+                open_set,
+                neighbor,
+                {tentative_g_score + h_fun.(neighbor), tentative_g_score}
+              )
+
+              Map.put(g_score_acc, neighbor, tentative_g_score)
+            else
+              g_score_acc
+            end
+          end)
+
+        iterate(graph, Map.put(state, :g_score, updated_g_scores))
       end
     end
+  end
+
+  defp reconstruct_path(path) do
+    path
   end
 
   defp finalize(result) do
     :todo
   end
-
 end

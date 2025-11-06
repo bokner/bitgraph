@@ -8,6 +8,5 @@ defmodule BitGraphTest.Common do
 
     cycle = BitGraph.new() |> BitGraph.add_edges([{:a, :b}, {:c, :a}, {:b, :c}])
     assert Common.cycle?(cycle, BitGraph.vertex_indices(cycle))
-
   end
 end
