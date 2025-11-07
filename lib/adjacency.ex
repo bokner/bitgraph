@@ -1,5 +1,4 @@
 defmodule BitGraph.Adjacency do
-
   def init_adjacency_table(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
     max_vertices = Keyword.get(opts, :max_vertices)
@@ -93,18 +92,25 @@ defmodule BitGraph.Adjacency do
   def column_iterator(
         %{
           table_dimension: table_dimension
-        } = table, column
-      ) when is_integer(column) do
-        Iter.Iterable.Filterer.new(1..table_dimension,
-          fn i -> get(table, i, column) == 1
-      end)
+        } = table,
+        column
+      )
+      when is_integer(column) do
+    Iter.Iterable.Filterer.new(
+      1..table_dimension,
+      fn i -> get(table, i, column) == 1 end
+    )
   end
 
+  def copy(
+        %{bit_vector: {:bit_vector, source_ref} = _bit_vector, table_dimension: dimension} =
+          adjacency,
+        edges \\ nil
+      ) do
+    vector_copy = {:bit_vector, target_ref} = allocate(dimension)
 
-  def copy(%{bit_vector: {:bit_vector, source_ref} = _bit_vector, table_dimension: dimension} = adjacency, edges \\ nil) do
-      vector_copy = {:bit_vector, target_ref} = allocate(dimension)
-      Map.put(adjacency, :bit_vector, vector_copy)
-      |> tap(fn adjacency ->
+    Map.put(adjacency, :bit_vector, vector_copy)
+    |> tap(fn adjacency ->
       if edges do
         copy_from_edges(edges, adjacency)
       else

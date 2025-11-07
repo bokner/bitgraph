@@ -26,17 +26,23 @@ defmodule BitGraphTest.Algorithm.SCC do
     Enum.each(
       [graph_example_1(), graph_example_2(), graph_example_3()],
       fn {graph, valid_sccs} ->
-        Enum.each([
-          ## Test direct call
-          SCC.Kozaraju.run(graph),
-          SCC.Tarjan.run(graph)
+        Enum.each(
+          [
+            ## Test direct call
+            SCC.Kozaraju.run(graph),
+            SCC.Tarjan.run(graph)
           ],
-        fn strong_components ->
-        normalized_sccs = Enum.map(strong_components, fn component -> Common.vertex_indices_to_ids(graph, component) end)
-        assert Enum.sort(normalized_sccs) == Enum.sort(valid_sccs)
-        end)
-      end)
+          fn strong_components ->
+            normalized_sccs =
+              Enum.map(strong_components, fn component ->
+                Common.vertex_indices_to_ids(graph, component)
+              end)
 
+            assert Enum.sort(normalized_sccs) == Enum.sort(valid_sccs)
+          end
+        )
+      end
+    )
   end
 
   test "SCC for empty graph" do
@@ -45,30 +51,44 @@ defmodule BitGraphTest.Algorithm.SCC do
     assert SCC.Tarjan.run(graph) == []
   end
 
-
   defp strongly_connected_graph_example() do
     vertices = 1..7
+
     edges =
-    [
-      {1, 2}, {1, 5}, {1, 6},
-      {2, 3}, {2, 4},
-      {3, 1},
-      {4, 3},
-      {5, 2}, {5, 4},
-      {6, 1}, {6, 7},
-      {7, 4}, {7, 5}
-    ]
+      [
+        {1, 2},
+        {1, 5},
+        {1, 6},
+        {2, 3},
+        {2, 4},
+        {3, 1},
+        {4, 3},
+        {5, 2},
+        {5, 4},
+        {6, 1},
+        {6, 7},
+        {7, 4},
+        {7, 5}
+      ]
+
     BitGraph.new() |> BitGraph.add_vertices(vertices) |> BitGraph.add_edges(edges)
   end
 
   defp tree_example() do
     edges = [
-      {1, 2}, {1, 3}, {1, 4},
-      {2, 5}, {2, 6}, {2, 7},
-      {3, 8}, {3, 9},
-      {4, 10}, {4, 11},
+      {1, 2},
+      {1, 3},
+      {1, 4},
+      {2, 5},
+      {2, 6},
+      {2, 7},
+      {3, 8},
+      {3, 9},
+      {4, 10},
+      {4, 11},
       {5, 12}
     ]
+
     BitGraph.new() |> BitGraph.add_edges(edges)
   end
 
@@ -77,14 +97,22 @@ defmodule BitGraphTest.Algorithm.SCC do
     ## Modified to add a single-vertex component (by having :i -> :f edge)
     edges = [
       {:a, :b},
-      {:b, :c}, {:b, :e}, {:b, :f},
-      {:c, :d}, {:c, :g},
-      {:d, :c}, {:d, :h},
-      {:e, :a}, {:e, :f},
+      {:b, :c},
+      {:b, :e},
+      {:b, :f},
+      {:c, :d},
+      {:c, :g},
+      {:d, :c},
+      {:d, :h},
+      {:e, :a},
+      {:e, :f},
       {:f, :g},
-      {:g, :f}, {:i, :f},
-      {:h, :d}, {:h, :g}
+      {:g, :f},
+      {:i, :f},
+      {:h, :d},
+      {:h, :g}
     ]
+
     valid_sccs = [
       [:a, :b, :e],
       [:f, :g],
@@ -98,25 +126,29 @@ defmodule BitGraphTest.Algorithm.SCC do
   defp graph_example_2() do
     edges = [
       {"A", "B"},
-        {"B", "D"}, {"B", "E"},
-        {"C", "F"},
-        {"E", "B"}, {"E", "F"},
-        {"F", "C"}, {"F", "H"},
-        {"G", "H"}, {"G", "J"},
-        {"H", "K"},
-        {"I", "G"},
-        {"J", "I"},
-        {"K", "L"},
-        {"L", "J"}
-      ]
+      {"B", "D"},
+      {"B", "E"},
+      {"C", "F"},
+      {"E", "B"},
+      {"E", "F"},
+      {"F", "C"},
+      {"F", "H"},
+      {"G", "H"},
+      {"G", "J"},
+      {"H", "K"},
+      {"I", "G"},
+      {"J", "I"},
+      {"K", "L"},
+      {"L", "J"}
+    ]
 
     valid_sccs = [
       ["A"],
       ["D"],
       ["B", "E"],
-       ["C", "F"],
-       ["H", "G", "J", "K", "I", "L"]
-     ]
+      ["C", "F"],
+      ["H", "G", "J", "K", "I", "L"]
+    ]
 
     {BitGraph.new() |> BitGraph.add_edges(edges), valid_sccs}
   end
@@ -125,15 +157,19 @@ defmodule BitGraphTest.Algorithm.SCC do
     # https://www.baeldung.com/cs/scc-tarjans-algorithm#the-pseudocode-of-the-algorithm
     edges = [
       {:a, :b},
-      {:b, :c}, {:b, :d},
+      {:b, :c},
+      {:b, :d},
       {:c, :a},
       {:d, :e},
       {:e, :f},
       {:f, :e},
-      {:g, :e}, {:g, :h},
-      {:h, :f}, {:h, :i},
+      {:g, :e},
+      {:g, :h},
+      {:h, :f},
+      {:h, :i},
       {:i, :j},
-      {:j, :g}, {:j, :h}
+      {:j, :g},
+      {:j, :h}
     ]
 
     valid_sccs = [
@@ -144,7 +180,5 @@ defmodule BitGraphTest.Algorithm.SCC do
     ]
 
     {BitGraph.new() |> BitGraph.add_edges(edges), valid_sccs}
-
   end
-
 end

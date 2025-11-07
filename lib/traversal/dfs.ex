@@ -36,15 +36,19 @@ defmodule BitGraph.Dfs do
   def run(graph, opts \\ []) do
     graph = update_graph_opts(graph, opts)
     vertices = Keyword.get(opts, :vertices, [])
-    initial_state = Keyword.get(opts, :state) || (
-      case vertices do
-        [] -> nil
-        list when is_struct(vertices, MapSet) or is_list(vertices) ->
-          Enum.empty?(list) && nil || init_dfs(graph, opts)
-        other ->
-          throw({:error, {:invalid_vertex_list, other}})
+
+    initial_state =
+      Keyword.get(opts, :state) ||
+        case vertices do
+          [] ->
+            nil
+
+          list when is_struct(vertices, MapSet) or is_list(vertices) ->
+            (Enum.empty?(list) && nil) || init_dfs(graph, opts)
+
+          other ->
+            throw({:error, {:invalid_vertex_list, other}})
         end
-    )
 
     Enum.reduce(vertices, initial_state, fn vertex, state_acc ->
       if vertex_color(state_acc, vertex) == @white_vertex do
@@ -59,8 +63,8 @@ defmodule BitGraph.Dfs do
   defp update_graph_opts(graph, opts) do
     BitGraph.update_opts(graph, opts)
     |> then(fn g ->
-      BitGraph.get_opts(g)[:neighbor_finder] && g
-      || BitGraph.set_neighbor_finder(g, N.default_neighbor_iterator())
+      (BitGraph.get_opts(g)[:neighbor_finder] && g) ||
+        BitGraph.set_neighbor_finder(g, N.default_neighbor_iterator())
     end)
   end
 
@@ -91,7 +95,8 @@ defmodule BitGraph.Dfs do
     max_index = BitGraph.max_index(graph)
 
     %{
-      component_top: nil, #root,
+      # root,
+      component_top: nil,
       direction: Keyword.get(opts, :direction, :forward),
       process_edge_fun:
         Keyword.get(opts, :process_edge_fun, default_process_edge_fun())
@@ -123,14 +128,12 @@ defmodule BitGraph.Dfs do
 
   defp dfs_impl(graph, vertex, %{direction: direction} = state)
        when is_integer(vertex) do
-
     initial_state = init_vertex_processing(state, vertex)
     neighbor_iterator = vertex_neighbors(graph, vertex, direction)
 
-    iterate(neighbor_iterator, initial_state,
-      fn neighbor, acc ->
-        process_edge(graph, acc, vertex, neighbor)
-      end)
+    iterate(neighbor_iterator, initial_state, fn neighbor, acc ->
+      process_edge(graph, acc, vertex, neighbor)
+    end)
     |> finalize_vertex_processing(vertex)
   end
 
@@ -311,7 +314,8 @@ defmodule BitGraph.Dfs do
   defp order_impl(arr_ref, order) do
     arr_ref
     ## Skip vertices with unassigned orders
-    |> Array.reduce({[], 1}, fn 0, {list, idx} -> {list, idx + 1}
+    |> Array.reduce({[], 1}, fn
+      0, {list, idx} -> {list, idx + 1}
       el, {list, idx} -> {[{el, idx} | list], idx + 1}
     end)
     |> elem(0)

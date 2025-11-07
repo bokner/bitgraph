@@ -34,15 +34,21 @@ defmodule BitGraph.Neighbor do
       default
   end
 
-  def iterate_neighbors(graph, vertex_index, start_value, fun \\ fn neighbor, _acc -> neighbor end, direction \\ :both) when is_integer(vertex_index) do
-    iterator = cond do
-      direction == :both -> BitGraph.V.neighbors(graph, vertex_index)
-      direction == :in -> BitGraph.V.in_neighbors(graph, vertex_index)
-      direction == :out -> BitGraph.V.neighbors(graph, vertex_index)
-    end
+  def iterate_neighbors(
+        graph,
+        vertex_index,
+        start_value,
+        fun \\ fn neighbor, _acc -> neighbor end,
+        direction \\ :both
+      )
+      when is_integer(vertex_index) do
+    iterator =
+      cond do
+        direction == :both -> BitGraph.V.neighbors(graph, vertex_index)
+        direction == :in -> BitGraph.V.in_neighbors(graph, vertex_index)
+        direction == :out -> BitGraph.V.neighbors(graph, vertex_index)
+      end
 
     iterate(iterator, start_value, fun)
   end
-
-
 end

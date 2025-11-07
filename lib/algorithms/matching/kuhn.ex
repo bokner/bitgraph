@@ -22,15 +22,21 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
   @impl true
   def preprocess(graph, opts) do
     case Keyword.get(opts, :left_partition) do
-      nil -> throw({:mandatory_option, :left_partition})
+      nil ->
+        throw({:mandatory_option, :left_partition})
+
       left_partition ->
-        Keyword.put(opts, :left_partition,
-        MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end))
-      end
+        Keyword.put(
+          opts,
+          :left_partition,
+          MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end)
+        )
+    end
   end
 
   @impl true
-  @spec postprocess(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) :: %{matching: Map.t(), free: MapSet.t()} | nil
+  @spec postprocess(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) ::
+          %{matching: Map.t(), free: MapSet.t()} | nil
   def postprocess(_graph, nil) do
     nil
   end
@@ -73,13 +79,16 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
 
   def run(graph, opts) do
     case Keyword.get(opts, :left_partition) do
-      nil -> throw({:mandatory_option, :left_partition})
+      nil ->
+        throw({:mandatory_option, :left_partition})
+
       left_partition ->
         run(graph, left_partition, opts)
     end
   end
 
-  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: %{matching: Map.t(), free: MapSet.t()} | nil
+  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) ::
+          %{matching: Map.t(), free: MapSet.t()} | nil
   def run(graph, left_partition, opts) when is_list(left_partition) do
     run(graph, MapSet.new(left_partition), opts)
   end
@@ -88,7 +97,7 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
     initial_state = initial_state(graph, left_partition, opts)
 
     Enum.reduce_while(initial_state.left_partition, initial_state, fn lp_vertex_index,
-                                                                              state_acc ->
+                                                                      state_acc ->
       if state_acc.max_matching_size == get_matching_count(state_acc) do
         {:halt, state_acc}
       else
