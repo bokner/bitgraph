@@ -1,6 +1,6 @@
 defmodule BitGraph.Algorithm do
   alias BitGraph.{Dfs, E, V}
-  alias BitGraph.Algorithm.{SCC, Matching.Kuhn}
+  alias BitGraph.Algorithm.{SCC, Matching.Kuhn, Search.AStar}
   alias InPlace.Array
 
   @callback preprocess(BitGraph.t(), Keyword.t()) :: Keyword.t()
@@ -152,6 +152,13 @@ defmodule BitGraph.Algorithm do
       other ->
         throw({:bipartite_matching, :unknown_algo, other})
     end
+  end
+
+  def a_star(graph, start, goal, opts) do
+    run(graph, AStar,
+      opts
+      |> Keyword.put(:start, start)
+      |> Keyword.put(:goal, goal))
   end
 
   ## Build cycle starting from vertex

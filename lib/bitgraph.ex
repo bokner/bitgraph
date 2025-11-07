@@ -82,6 +82,12 @@ defmodule BitGraph do
     BitGraph.Algorithm.bipartite_matching(graph, Keyword.put(opts, :process_mode, :both))
   end
 
+  def a_star(graph, start, goal, opts \\ []) do
+    BitGraph.Algorithm.a_star(graph, start, goal, Keyword.put(opts, :process_mode, :both))
+  end
+
+
+
   def default_opts() do
     [
       max_vertices: 1024
