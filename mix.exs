@@ -4,7 +4,7 @@ defmodule BitGraph.MixProject do
   def project do
     [
       app: :bitgraph,
-      version: "0.4.3",
+      version: "0.4.4",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -25,8 +25,6 @@ defmodule BitGraph.MixProject do
     [
       {:libgraph, "~> 0.16.0", only: :dev, runtime: false},
       {:inplace, "~> 0.1"},
-      {:arrays, "~> 2.1"},
-      {:arrays_aja, "~> 0.2.0"},
       {:math, "~> 0.7.0", only: :test},
       {:iterex, "~> 0.1"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
