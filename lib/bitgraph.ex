@@ -15,6 +15,7 @@ defmodule BitGraph do
 
   def new(opts \\ []) do
     opts = Keyword.merge(default_opts(), opts)
+
     %{
       opts: opts,
       vertices: V.init_vertices(opts),
@@ -37,15 +38,13 @@ defmodule BitGraph do
   ## subset of vertices and edges between them.
   ##
   def subgraph(graph, subgraph_vertices, :detached) do
-    Enum.reduce(BitGraph.vertices(graph), copy(graph),
-      fn existing_vertex, acc ->
-        if !Iterable.member?(subgraph_vertices, existing_vertex) do
-          BitGraph.delete_vertex(acc, existing_vertex)
-        else
-          acc
-        end
+    Enum.reduce(BitGraph.vertices(graph), copy(graph), fn existing_vertex, acc ->
+      if !Iterable.member?(subgraph_vertices, existing_vertex) do
+        BitGraph.delete_vertex(acc, existing_vertex)
+      else
+        acc
       end
-    )
+    end)
   end
 
   ## Maps the graph onto a subgraph.
@@ -53,14 +52,16 @@ defmodule BitGraph do
   ## to filter vertices accordingly.
   ## The graph structure will not be modified.
   def subgraph(graph, subgraph_vertices, :mapped) do
-    Map.put(graph, :subgraph,
-    ## :subgraph keeps the set of vertex indices in the form of iterator
-    Enum.reduce(subgraph_vertices, MapSet.new(), fn vertex, acc ->
-      case V.get_vertex_index(graph, vertex) do
-        nil -> acc
-        idx -> MapSet.put(acc, idx)
-      end
-    end)
+    Map.put(
+      graph,
+      :subgraph,
+      ## :subgraph keeps the set of vertex indices in the form of iterator
+      Enum.reduce(subgraph_vertices, MapSet.new(), fn vertex, acc ->
+        case V.get_vertex_index(graph, vertex) do
+          nil -> acc
+          idx -> MapSet.put(acc, idx)
+        end
+      end)
     )
   end
 
@@ -81,6 +82,12 @@ defmodule BitGraph do
     BitGraph.Algorithm.bipartite_matching(graph, Keyword.put(opts, :process_mode, :both))
   end
 
+  def a_star(graph, start, goal, opts \\ []) do
+    BitGraph.Algorithm.a_star(graph, start, goal, Keyword.put(opts, :process_mode, :both))
+  end
+
+
+
   def default_opts() do
     [
       max_vertices: 1024
@@ -100,11 +107,12 @@ defmodule BitGraph do
   end
 
   def update_opts(graph, opts) do
-    Map.update!(graph, :opts,
-      fn current_opts ->
-        Keyword.merge(current_opts,
-        Keyword.take(opts, core_opts_names()))
-      end)
+    Map.update!(graph, :opts, fn current_opts ->
+      Keyword.merge(
+        current_opts,
+        Keyword.take(opts, core_opts_names())
+      )
+    end)
   end
 
   def get_opt(graph, option) do
@@ -136,6 +144,7 @@ defmodule BitGraph do
     Enum.reduce(vertices, graph, fn
       {vertex, opts}, acc when is_list(opts) ->
         add_vertex(acc, vertex, opts)
+
       vertex, acc ->
         add_vertex(acc, vertex)
     end)
@@ -151,12 +160,14 @@ defmodule BitGraph do
 
   def delete_vertex(graph, vertex) do
     case V.get_vertex_index(graph, vertex) do
-      nil -> graph
+      nil ->
+        graph
+
       vertex_index ->
         graph
         |> E.delete_edges(vertex_index)
         |> V.delete_vertex(vertex)
-      end
+    end
   end
 
   def get_vertex(graph, vertex, opts \\ []) do
@@ -169,8 +180,7 @@ defmodule BitGraph do
     V.update_vertex(graph, vertex_index, opts)
   end
 
-
-  def vertices(graph, mapper \\ &(&1.vertex)) do
+  def vertices(graph, mapper \\ & &1.vertex) do
     V.vertices(graph, mapper)
   end
 
@@ -199,13 +209,13 @@ defmodule BitGraph do
     |> V.add_vertex(from, opts)
     |> V.add_vertex(to, opts)
     |> then(fn graph ->
-            from_index = V.get_vertex_index(graph, from)
-            to_index = V.get_vertex_index(graph, to)
-            E.add_edge(graph, from_index, to_index)
-            Map.update(graph, :edges, %{},
-              fn edges ->
-                Map.put(edges, {from_index, to_index}, E.new(from, to, opts))
-              end)
+      from_index = V.get_vertex_index(graph, from)
+      to_index = V.get_vertex_index(graph, to)
+      E.add_edge(graph, from_index, to_index)
+
+      Map.update(graph, :edges, %{}, fn edges ->
+        Map.put(edges, {from_index, to_index}, E.new(from, to, opts))
+      end)
     end)
   end
 
@@ -213,8 +223,10 @@ defmodule BitGraph do
     Enum.reduce(edges, graph, fn
       {from, to}, acc ->
         add_edge(acc, from, to)
+
       {from, to, opts}, acc ->
         add_edge(acc, from, to, opts)
+
       %E{} = edge, acc ->
         add_edge(acc, edge)
     end)
@@ -231,9 +243,10 @@ defmodule BitGraph do
   def delete_edge(graph, from, to) do
     from_index = V.get_vertex_index(graph, from)
     to_index = V.get_vertex_index(graph, to)
-    from_index && to_index &&
-    E.delete_edge(graph, from_index, to_index)
-    || graph
+
+    (from_index && to_index &&
+       E.delete_edge(graph, from_index, to_index)) ||
+      graph
   end
 
   def delete_edges(graph, edges) do
@@ -242,9 +255,9 @@ defmodule BitGraph do
     end)
   end
 
-
   def get_edge(graph, from, to) do
-    E.get_edge(graph,
+    E.get_edge(
+      graph,
       V.get_vertex_index(graph, from),
       V.get_vertex_index(graph, to)
     )
@@ -259,7 +272,10 @@ defmodule BitGraph do
   end
 
   def edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
-    MapSet.union(in_edges(graph, vertex, edge_fun, opts), out_edges(graph, vertex, edge_fun, opts))
+    MapSet.union(
+      in_edges(graph, vertex, edge_fun, opts),
+      out_edges(graph, vertex, edge_fun, opts)
+    )
   end
 
   def in_edges(graph, vertex, edge_fun \\ &default_edge_info/3, opts \\ []) do
@@ -306,20 +322,18 @@ defmodule BitGraph do
   ## Neighbors as an iterator of vertices
   def transform_neighbors(graph, _vertex, neighbors, :iterator) do
     Mapper.new(neighbors, fn vertex_index ->
-       V.get_vertex(graph, vertex_index)
+      V.get_vertex(graph, vertex_index)
     end)
-
   end
 
   ## Neighbors
-  def transform_neighbors(graph, vertex, neighbors, transform_fun) when is_function(transform_fun, 3) do
+  def transform_neighbors(graph, vertex, neighbors, transform_fun)
+      when is_function(transform_fun, 3) do
     transform_fun.(graph, vertex, neighbors)
   end
 
   def neighbors(graph, vertex, opts \\ []) do
-    Iterable.concat(
-    [out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts)]
-    )
+    Iterable.concat([out_neighbors(graph, vertex, opts), in_neighbors(graph, vertex, opts)])
   end
 
   def in_degree(graph, vertex, opts \\ []) do
@@ -352,28 +366,31 @@ defmodule BitGraph do
     }
   end
 
-  defp edges_impl(graph, vertex_index, edge_info_fun, direction, _opts) when is_integer(vertex_index) do
-    edges = direction == :in && E.in_edges(graph, vertex_index) || E.out_edges(graph, vertex_index)
+  defp edges_impl(graph, vertex_index, edge_info_fun, direction, _opts)
+       when is_integer(vertex_index) do
+    edges =
+      (direction == :in && E.in_edges(graph, vertex_index)) || E.out_edges(graph, vertex_index)
+
     iterate(edges, MapSet.new(), fn %E{from: from, to: to}, acc ->
       {:cont,
-        case edge_info_fun.(from, to, graph) do
+       case edge_info_fun.(from, to, graph) do
          nil -> acc
          edge_info -> MapSet.put(acc, edge_info)
-        end
-      }
+       end}
     end)
   end
 
-  defp edges_impl(_graph, vertex_index, _edge_info_fun, _direction, _opts) when is_nil(vertex_index) do
+  defp edges_impl(_graph, vertex_index, _edge_info_fun, _direction, _opts)
+       when is_nil(vertex_index) do
     MapSet.new()
   end
 
-  defp default_edge_info(from, to, %{edges: edges} = _graph) when is_integer(from) and is_integer(to) do
+  defp default_edge_info(from, to, %{edges: edges} = _graph)
+       when is_integer(from) and is_integer(to) do
     Map.get(edges, {from, to}, E.new(from, to))
   end
 
   defp default_edge_info(from, to, graph) do
     default_edge_info(V.get_vertex_index(graph, from), V.get_vertex_index(graph, to), graph)
   end
-
 end

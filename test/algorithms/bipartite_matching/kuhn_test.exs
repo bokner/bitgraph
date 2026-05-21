@@ -90,21 +90,22 @@ defmodule BitGraphTest.Algorithm.Kuhn do
       {bp_graph, left_partition} = build_bp_graph(right_side_neighbors)
 
       fixed_matching = %{{:L, 1} => {:R, 5}}
-      #fixed_matching = %{}
+      # fixed_matching = %{}
       matching = Kuhn.run(bp_graph, left_partition, fixed_matching: fixed_matching)
 
       assert_matching(matching, 6)
 
       ## Fixed matching is respected
-      assert BitGraph.V.get_vertex_index(bp_graph, {:R, 5}) == Map.get(matching.matching,
-        BitGraph.V.get_vertex_index(bp_graph, {:L, 1}))
+      assert BitGraph.V.get_vertex_index(bp_graph, {:R, 5}) ==
+               Map.get(
+                 matching.matching,
+                 BitGraph.V.get_vertex_index(bp_graph, {:L, 1})
+               )
 
       matching_no_fixed = Kuhn.run(bp_graph, left_partition: left_partition)
 
       # Matching with nothing fixed is different
       refute {:R, 5} == Map.get(matching_no_fixed.matching, {:L, 1})
-
-
     end
 
     test "valid fixed matching" do
@@ -113,23 +114,30 @@ defmodule BitGraphTest.Algorithm.Kuhn do
       ## There is no value 0 for any of the left-side vertices
       non_value_edge = %{{:R, 1} => {:L, 1}}
 
-      assert catch_throw(Kuhn.run(bp_graph, left_partition: left_partition, fixed_matching: non_value_edge))
-                == {:error, {:not_in_left_partition, {:R, 1}}}
+      assert catch_throw(
+               Kuhn.run(bp_graph, left_partition: left_partition, fixed_matching: non_value_edge)
+             ) ==
+               {:error, {:not_in_left_partition, {:R, 1}}}
 
       invalid_fixed_matching = %{{:L, 1} => {:R, 1}, {:L, 2} => {:R, 1}}
-      assert catch_throw(Kuhn.run(bp_graph, left_partition: left_partition, fixed_matching: invalid_fixed_matching))
-      == {:error, {:invalid_fixed_matching, {:multiple_matches, {:R, 1}}}}
 
+      assert catch_throw(
+               Kuhn.run(bp_graph,
+                 left_partition: left_partition,
+                 fixed_matching: invalid_fixed_matching
+               )
+             ) ==
+               {:error, {:invalid_fixed_matching, {:multiple_matches, {:R, 1}}}}
     end
 
     test "fixed matching that has duplicate values will fire an exception" do
       {bp_graph, left_partition} = build_bp_graph(@three_vertices_instance)
       invalid_fixed_matching = %{{:L, 1} => {:R, 0}, {:L, 2} => {:R, 0}}
-      assert catch_throw(
-        {:error, {:not_in_left_partition, {:L, 0}}} =
-          Kuhn.run(bp_graph, left_partition, fixed_matching: invalid_fixed_matching)
-      )
 
+      assert catch_throw(
+               {:error, {:not_in_left_partition, {:L, 0}}} =
+                 Kuhn.run(bp_graph, left_partition, fixed_matching: invalid_fixed_matching)
+             )
     end
 
     test "required matching size" do
@@ -162,12 +170,17 @@ defmodule BitGraphTest.Algorithm.Kuhn do
     graph_input = Enum.zip(left_partition, right_side_neighbors)
 
     bp_graph =
-      Enum.reduce(graph_input, BitGraph.new() |> BitGraph.add_vertices(left_partition), fn {ls_vertex, rs_neighbors}, g_acc ->
-        edges = Enum.map(rs_neighbors, fn rsn -> {ls_vertex, {:R, rsn}} end)
-        BitGraph.add_edges(g_acc, edges)
-      end)
+      Enum.reduce(
+        graph_input,
+        BitGraph.new() |> BitGraph.add_vertices(left_partition),
+        fn {ls_vertex, rs_neighbors}, g_acc ->
+          edges = Enum.map(rs_neighbors, fn rsn -> {ls_vertex, {:R, rsn}} end)
+          BitGraph.add_edges(g_acc, edges)
+        end
+      )
 
-    {bp_graph, MapSet.new(left_partition, fn vertex -> BitGraph.V.get_vertex_index(bp_graph, vertex) end)}
+    {bp_graph,
+     MapSet.new(left_partition, fn vertex -> BitGraph.V.get_vertex_index(bp_graph, vertex) end)}
   end
 
   defp assert_matching(matching, size) do

@@ -77,6 +77,7 @@ defmodule BitGraphTest.Adjacency do
   test "copy adjacency table" do
     num_vertices = Enum.random(2..1000)
     adjacency_table = Adjacency.init_adjacency_table(max_vertices: num_vertices)
+
     for i <- 1..num_vertices, j <- 1..num_vertices, i != j do
       :rand.uniform() <= 0.5 && Adjacency.set(adjacency_table, i, j)
     end
@@ -86,9 +87,8 @@ defmodule BitGraphTest.Adjacency do
     assert Enum.all?(1..num_vertices, fn i ->
              Enum.all?(1..num_vertices, fn j ->
                Adjacency.get(adjacency_table, i, j) ==
-                Adjacency.get(copy, i, j)
+                 Adjacency.get(copy, i, j)
              end)
            end)
-
   end
 end

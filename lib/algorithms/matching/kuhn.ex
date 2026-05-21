@@ -7,7 +7,7 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
   """
 
   alias BitGraph.V
-  alias BitGraph.Array
+  alias InPlace.Array
   alias Iter.Iterable
   import BitGraph.Common
 
@@ -22,15 +22,21 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
   @impl true
   def preprocess(graph, opts) do
     case Keyword.get(opts, :left_partition) do
-      nil -> throw({:mandatory_option, :left_partition})
+      nil ->
+        throw({:mandatory_option, :left_partition})
+
       left_partition ->
-        Keyword.put(opts, :left_partition,
-        MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end))
-      end
+        Keyword.put(
+          opts,
+          :left_partition,
+          MapSet.new(left_partition, fn vertex -> get_vertex_index(graph, vertex) end)
+        )
+    end
   end
 
   @impl true
-  @spec postprocess(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) :: %{matching: Map.t(), free: MapSet.t()} | nil
+  @spec postprocess(BitGraph.t(), %{matching: Map.t(), free: MapSet.t()} | nil) ::
+          %{matching: Map.t(), free: MapSet.t()} | nil
   def postprocess(_graph, nil) do
     nil
   end
@@ -73,13 +79,16 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
 
   def run(graph, opts) do
     case Keyword.get(opts, :left_partition) do
-      nil -> throw({:mandatory_option, :left_partition})
+      nil ->
+        throw({:mandatory_option, :left_partition})
+
       left_partition ->
         run(graph, left_partition, opts)
     end
   end
 
-  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) :: %{matching: Map.t(), free: MapSet.t()} | nil
+  @spec run(BitGraph.t(), MapSet | list(), Keyword.t()) ::
+          %{matching: Map.t(), free: MapSet.t()} | nil
   def run(graph, left_partition, opts) when is_list(left_partition) do
     run(graph, MapSet.new(left_partition), opts)
   end
@@ -88,7 +97,7 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
     initial_state = initial_state(graph, left_partition, opts)
 
     Enum.reduce_while(initial_state.left_partition, initial_state, fn lp_vertex_index,
-                                                                              state_acc ->
+                                                                      state_acc ->
       if state_acc.max_matching_size == get_matching_count(state_acc) do
         {:halt, state_acc}
       else
@@ -198,8 +207,8 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
 
     %{
       left_partition: left_partition,
-      used: Array.new(allocated),
-      match: Array.new(allocated),
+      used: Array.new(allocated, 0),
+      match: Array.new(allocated, 0),
       match_count: :counters.new(1, [:atomics]),
       max_matching_size: MapSet.size(left_partition),
       required_size: Keyword.get(opts, :required_size)
@@ -235,7 +244,7 @@ defmodule BitGraph.Algorithm.Matching.Kuhn do
           {:cont, acc}
         else
           case get_match(state, candidate_vertex_idx) do
-            value when value == 0 ->
+            0 ->
               {:cont,
                {c,
                 (!adjacent_to_left_partition?(graph, candidate_vertex_idx, left_partition_indices) &&

@@ -9,7 +9,8 @@ defmodule BitGraph.Common do
 
   def cycle?(graph, vertices) do
     circuit = [List.last(vertices) | vertices]
-    Enum.all?(0..length(circuit) - 2, fn idx ->
+
+    Enum.all?(0..(length(circuit) - 2), fn idx ->
       E.edge?(graph, Enum.at(circuit, idx), Enum.at(circuit, idx + 1))
     end)
   end
@@ -24,16 +25,17 @@ defmodule BitGraph.Common do
 
   def iterate(iterator, acc, fun) do
     case Iterable.next(iterator) do
-      :done -> acc
+      :done ->
+        acc
+
       {:ok, element, rest} ->
         case fun.(element, acc) do
           {:halt, acc_new} ->
             acc_new
+
           {:cont, acc_new} ->
             iterate(rest, acc_new, fun)
         end
     end
   end
-
-
 end

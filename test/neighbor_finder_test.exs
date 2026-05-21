@@ -6,11 +6,14 @@ defmodule BitGraphTest.NeighborFinder do
   test "neighbor_finder: neighbors and edges" do
     ## Buid bipartite graph with edges oriented from left partition to right partition
     partition_size = 3
+
     graph =
-      Enum.reduce(1..partition_size, BitGraph.new(allocate_adjacency_table?: false), fn idx, g_acc ->
-          BitGraph.add_vertex(g_acc, {:L, idx})
-      end) |> then(fn g ->
-          Enum.reduce(1..partition_size, g, fn idx, g_acc ->
+      Enum.reduce(1..partition_size, BitGraph.new(allocate_adjacency_table?: false), fn idx,
+                                                                                        g_acc ->
+        BitGraph.add_vertex(g_acc, {:L, idx})
+      end)
+      |> then(fn g ->
+        Enum.reduce(1..partition_size, g, fn idx, g_acc ->
           BitGraph.add_vertex(g_acc, {:R, idx})
         end)
       end)
@@ -23,56 +26,37 @@ defmodule BitGraphTest.NeighborFinder do
 
     ## neighbors and degrees
     assert Enum.all?(1..partition_size, fn idx ->
-      BitGraph.out_neighbors(virtual_graph, {:L, idx}) ==
-        MapSet.new(1..partition_size, fn idx -> {:R, idx} end)
-
-      &&
-      BitGraph.out_degree(virtual_graph, {:L, idx}) == partition_size
-
-      &&
-      BitGraph.in_neighbors(virtual_graph, {:R, idx}) ==
-        MapSet.new(1..partition_size, fn idx -> {:L, idx} end)
-
-      &&
-      BitGraph.in_degree(virtual_graph, {:R, idx}) == partition_size
-
-
-      && Enum.empty?(
-        BitGraph.out_neighbors(virtual_graph, {:R, idx})
-      )
-
-      && BitGraph.out_degree(virtual_graph, {:R, idx}) == 0
-
-      && Enum.empty?(
-        BitGraph.in_neighbors(virtual_graph, {:L, idx})
-      )
-
-      && BitGraph.in_degree(virtual_graph, {:L, idx}) == 0
-
-    end)
+             BitGraph.out_neighbors(virtual_graph, {:L, idx}) ==
+               MapSet.new(1..partition_size, fn idx -> {:R, idx} end) &&
+               BitGraph.out_degree(virtual_graph, {:L, idx}) == partition_size &&
+               BitGraph.in_neighbors(virtual_graph, {:R, idx}) ==
+                 MapSet.new(1..partition_size, fn idx -> {:L, idx} end) &&
+               BitGraph.in_degree(virtual_graph, {:R, idx}) == partition_size &&
+               Enum.empty?(BitGraph.out_neighbors(virtual_graph, {:R, idx})) &&
+               BitGraph.out_degree(virtual_graph, {:R, idx}) == 0 &&
+               Enum.empty?(BitGraph.in_neighbors(virtual_graph, {:L, idx})) &&
+               BitGraph.in_degree(virtual_graph, {:L, idx}) == 0
+           end)
 
     ## edges
     assert Enum.all?(1..partition_size, fn idx ->
-      BitGraph.out_edges(virtual_graph, {:L, idx}) ==
-        MapSet.new(partition_size + 1..partition_size * 2, fn neighbor_idx ->
-          BitGraph.E.new(idx, neighbor_idx)
-        end)
-      &&
-      BitGraph.in_edges(virtual_graph, {:L, idx}) == MapSet.new()
-      &&
-      BitGraph.in_edges(virtual_graph, {:R, idx}) ==
-        MapSet.new(1..partition_size, fn neighbor_idx ->
-          BitGraph.E.new(neighbor_idx, idx + partition_size)
-        end)
-      &&
-      BitGraph.out_edges(virtual_graph, {:R, idx}) == MapSet.new()
-    end)
-
+             BitGraph.out_edges(virtual_graph, {:L, idx}) ==
+               MapSet.new((partition_size + 1)..(partition_size * 2), fn neighbor_idx ->
+                 BitGraph.E.new(idx, neighbor_idx)
+               end) &&
+               BitGraph.in_edges(virtual_graph, {:L, idx}) == MapSet.new() &&
+               BitGraph.in_edges(virtual_graph, {:R, idx}) ==
+                 MapSet.new(1..partition_size, fn neighbor_idx ->
+                   BitGraph.E.new(neighbor_idx, idx + partition_size)
+                 end) &&
+               BitGraph.out_edges(virtual_graph, {:R, idx}) == MapSet.new()
+           end)
   end
 
   test "neighbor finder on DFS" do
     ## Build complete bipartite graph
     partition_size = 3
+
     graph =
       for left <- 1..partition_size, right <- 1..partition_size, reduce: BitGraph.new() do
         acc ->
@@ -95,18 +79,17 @@ defmodule BitGraphTest.NeighborFinder do
   test "Iterable neighbor finder on DFS" do
     ## Build complete bipartite graph with left -> right edges
     partition_size = 3
+
     graph =
       for left <- 1..partition_size, right <- 1..partition_size, reduce: BitGraph.new() do
         acc ->
           BitGraph.add_edge(acc, {:L, left}, {:R, right})
       end
-    neighbor_iterator = iterating_neighbor_finder(
-      matching_neighbor_finder(graph)
-    )
+
+    neighbor_iterator = iterating_neighbor_finder(matching_neighbor_finder(graph))
 
     ## Same as in the previous test, but with iterable neighbor finder.
     assert BitGraph.strongly_connected?(graph, neighbor_finder: neighbor_iterator)
-
   end
 
   defp bipartite_neighbor_finder(partition_size) do
@@ -117,15 +100,17 @@ defmodule BitGraphTest.NeighborFinder do
       cond do
         vertex_index in left_partition && direction == :out ->
           MapSet.new(right_partition)
+
         vertex_index in left_partition && direction == :in ->
           MapSet.new()
+
         vertex_index in right_partition && direction == :out ->
           MapSet.new()
+
         vertex_index in right_partition && direction == :in ->
           MapSet.new(left_partition)
       end
     end
-
   end
 
   defp matching_neighbor_finder(graph) do
@@ -133,14 +118,17 @@ defmodule BitGraphTest.NeighborFinder do
     left_partition = Enum.filter(BitGraph.vertices(graph), fn v -> elem(v, 0) == :L end)
     ## Convert to vertex-index form
     vertex_index_opts = Kuhn.preprocess(graph, left_partition: left_partition)
+
     result =
-      Kuhn.run(graph,
+      Kuhn.run(
+        graph,
         vertex_index_opts
-          # Enum.flat_map(BitGraph.vertices(graph),
-          #   fn {:L, _} = vertex -> [BitGraph.V.get_vertex_index(graph, vertex)]
-          #      {:R, _} -> []
-          # end)
+        # Enum.flat_map(BitGraph.vertices(graph),
+        #   fn {:L, _} = vertex -> [BitGraph.V.get_vertex_index(graph, vertex)]
+        #      {:R, _} -> []
+        # end)
       )
+
     ## Kuhn algorithm returns data based on vertex indices
     ## We transform to 'vertex' form, using the helper
     %{matching: left_to_right_matching} = Kuhn.postprocess(graph, result)

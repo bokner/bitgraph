@@ -12,11 +12,13 @@ defmodule BitGraphTest do
 
     test "copy graph" do
       edge_data = %{label: "a->b"}
+
       graph =
         BitGraph.new()
         |> BitGraph.add_vertex(:a, %{label: "a"})
         |> BitGraph.add_vertex(:b, %{label: "b"})
         |> BitGraph.add_edge(:a, :b, edge_data)
+
       copy = BitGraph.copy(graph)
 
       assert MapSet.size(BitGraph.vertices(graph)) == 2
@@ -34,7 +36,7 @@ defmodule BitGraphTest do
       assert graph.vertices.num_vertices == 1
       ## Adding existing vertex should not increase the number of vertices
       graph = BitGraph.add_vertex(graph, "A")
-      assert  BitGraph.num_vertices(graph) == 1
+      assert BitGraph.num_vertices(graph) == 1
       ## Adding a new vertex should increase the number of vertices
       graph = BitGraph.add_vertex(graph, "B")
       assert BitGraph.num_vertices(graph) == 2
@@ -44,9 +46,11 @@ defmodule BitGraphTest do
       graph = BitGraph.new()
       vertex_data = [label: "a", weight: 1]
       graph = BitGraph.add_vertex(graph, :a, vertex_data)
-      assert BitGraph.get_vertex(graph, :a, [:opts]) == vertex_data
-       and BitGraph.get_vertex(graph, :a, [:opts, :weight]) == 1
-       and BitGraph.get_vertex(graph, :a, [:vertex]) == :a
+
+      assert BitGraph.get_vertex(graph, :a, [:opts]) == vertex_data and
+               BitGraph.get_vertex(graph, :a, [:opts, :weight]) == 1 and
+               BitGraph.get_vertex(graph, :a, [:vertex]) == :a
+
       refute BitGraph.get_vertex(graph, :a, [:something])
 
       updated_data = [label: "a2", weight: 2]
@@ -108,7 +112,6 @@ defmodule BitGraphTest do
       assert BitGraph.vertex_indices(graph) == [2]
       assert map_size(graph.edges) == 0
       refute adjacent_vertices?(graph, :a, :b)
-
     end
 
     test "neighbors" do
@@ -123,18 +126,21 @@ defmodule BitGraphTest do
       assert BitGraph.out_neighbors(graph, :c) == MapSet.new([])
       ## Add BitGraph.E
       graph = BitGraph.add_edge(graph, %BitGraph.E{from: :c, to: :a})
-      assert  BitGraph.in_neighbors(graph, :a) == MapSet.new([:c])
-      assert  BitGraph.out_neighbors(graph, :c) == MapSet.new([:a])
+      assert BitGraph.in_neighbors(graph, :a) == MapSet.new([:c])
+      assert BitGraph.out_neighbors(graph, :c) == MapSet.new([:a])
     end
 
     test "neighbors, transformations" do
-      graph = BitGraph.new()|> BitGraph.add_edge(:a, :b) |> BitGraph.add_edge(:a, :c)
+      graph = BitGraph.new() |> BitGraph.add_edge(:a, :b) |> BitGraph.add_edge(:a, :c)
       ## Define transformation of the vertex neighbor indices back to their representation
-      neighbors = BitGraph.out_neighbors(graph, :a, shape: fn _graph, _vertex, neighbors ->
-        Mapper.new(neighbors, fn neighbor ->
-          BitGraph.V.get_vertex(graph, neighbor)
-        end)
-      end)
+      neighbors =
+        BitGraph.out_neighbors(graph, :a,
+          shape: fn _graph, _vertex, neighbors ->
+            Mapper.new(neighbors, fn neighbor ->
+              BitGraph.V.get_vertex(graph, neighbor)
+            end)
+          end
+        )
 
       assert is_struct(neighbors, Mapper)
 
@@ -165,48 +171,57 @@ defmodule BitGraphTest do
       ## Isolated vertex
       graph = BitGraph.delete_edge(graph, :a, :b)
       assert BitGraph.isolated_vertex?(graph, :b)
-
     end
 
     defp adjacent_vertices?(graph, v1, v2) do
       graph[:adjacency]
-      |> Adjacency.get(V.get_vertex_index(graph, v1),
-      V.get_vertex_index(graph, v2)
+      |> Adjacency.get(
+        V.get_vertex_index(graph, v1),
+        V.get_vertex_index(graph, v2)
       ) == 1
     end
-
   end
 
   test "subgraph (detached)" do
-    graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
-      [
-        {:a, :b}, {:a, :c}, {:a, :d},
-        {:b, :c}, {:b, :d},
+    graph =
+      BitGraph.new()
+      |> BitGraph.add_vertices([:a, :b, :c, :d])
+      |> BitGraph.add_edges([
+        {:a, :b},
+        {:a, :c},
+        {:a, :d},
+        {:b, :c},
+        {:b, :d},
         {:c, :d}
       ])
 
-     subgraph = BitGraph.subgraph(graph, [:a, :b, :c])
-     assert_subgraph(subgraph)
-     ## The parent graph is not affected
-     assert BitGraph.num_vertices(graph) == 4
-     assert BitGraph.num_edges(graph) == 6
-     ## Removing vertex from parent graph does not affect a detached subgraph
-     graph2 = BitGraph.delete_vertex(graph, :a)
-     assert BitGraph.num_vertices(graph2) == 3
-     assert_subgraph(subgraph)
-     ## Removing vertex from subgraph does not affect the parent graph
-     _subgraph2 = BitGraph.delete_vertex(subgraph, :a)
-     assert BitGraph.num_vertices(graph) == 4
-
+    subgraph = BitGraph.subgraph(graph, [:a, :b, :c])
+    assert_subgraph(subgraph)
+    ## The parent graph is not affected
+    assert BitGraph.num_vertices(graph) == 4
+    assert BitGraph.num_edges(graph) == 6
+    ## Removing vertex from parent graph does not affect a detached subgraph
+    graph2 = BitGraph.delete_vertex(graph, :a)
+    assert BitGraph.num_vertices(graph2) == 3
+    assert_subgraph(subgraph)
+    ## Removing vertex from subgraph does not affect the parent graph
+    _subgraph2 = BitGraph.delete_vertex(subgraph, :a)
+    assert BitGraph.num_vertices(graph) == 4
   end
 
   test "subgraph (mapped)" do
-    graph = BitGraph.new() |> BitGraph.add_vertices([:a, :b, :c, :d]) |> BitGraph.add_edges(
-      [
-        {:a, :b}, {:a, :c}, {:a, :d},
-        {:b, :c}, {:b, :d},
+    graph =
+      BitGraph.new()
+      |> BitGraph.add_vertices([:a, :b, :c, :d])
+      |> BitGraph.add_edges([
+        {:a, :b},
+        {:a, :c},
+        {:a, :d},
+        {:b, :c},
+        {:b, :d},
         {:d, :c}
       ])
+
     subgraph = BitGraph.subgraph(graph, [:a, :b, :c], :mapped)
     assert BitGraph.out_neighbors(subgraph, :a) == MapSet.new([:b, :c])
     assert BitGraph.in_neighbors(subgraph, :c) == MapSet.new([:a, :b])
@@ -215,18 +230,22 @@ defmodule BitGraphTest do
 
   test "subgraph in DFS" do
     # Two strong components, connected with a single edge
-    graph = BitGraph.new() |> BitGraph.add_edges(
-      [
-        ##Cycle 1
-        {:x1, 1}, {2, :x1},
-        {:x2, 2}, {1, :x2},
+    graph =
+      BitGraph.new()
+      |> BitGraph.add_edges([
+        ## Cycle 1
+        {:x1, 1},
+        {2, :x1},
+        {:x2, 2},
+        {1, :x2},
         ## Connecting edge
         {:x3, 2},
         ## Cycle 2
-        {:x3, 4}, {3, :x3},
-        {:x4, 3}, {4, :x4}
-      ]
-    )
+        {:x3, 4},
+        {3, :x3},
+        {:x4, 3},
+        {4, :x4}
+      ])
 
     cycle1 = [:x1, 1, :x2, 2]
     cycle2 = [:x3, 4, :x4, 3]
@@ -234,15 +253,16 @@ defmodule BitGraphTest do
     ## The full graph has two strong components (cycles)
     ## It's not strongly connected (otherwise ti would have a single SCC)
     assert BitGraph.strong_components(graph) |> Enum.sort() ==
-      [MapSet.new(cycle1), MapSet.new(cycle2)] |> Enum.sort()
+             [MapSet.new(cycle1), MapSet.new(cycle2)] |> Enum.sort()
+
     refute BitGraph.strongly_connected?(graph)
     ## The cycles as subgraphs are strongly connected
     assert Enum.any?([cycle1, cycle2], fn c ->
-      graph
-      |> BitGraph.subgraph(c, :mapped)
-      |> BitGraph.strongly_connected?() end)
+             graph
+             |> BitGraph.subgraph(c, :mapped)
+             |> BitGraph.strongly_connected?()
+           end)
   end
-
 
   defp assert_subgraph(subgraph) do
     assert Enum.sort(BitGraph.vertices(subgraph)) == Enum.sort([:a, :b, :c])

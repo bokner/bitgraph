@@ -1,10 +1,10 @@
-defmodule Bitgraph.MixProject do
+defmodule BitGraph.MixProject do
   use Mix.Project
 
   def project do
     [
       app: :bitgraph,
-      version: "0.3.3",
+      version: "0.4.5",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -24,8 +24,7 @@ defmodule Bitgraph.MixProject do
   defp deps do
     [
       {:libgraph, "~> 0.16.0", only: :dev, runtime: false},
-      {:arrays, "~> 2.1"},
-      {:arrays_aja, "~> 0.2.0"},
+      {:inplace, "~> 0.1"},
       {:math, "~> 0.7.0", only: :test},
       {:iterex, "~> 0.1"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
@@ -43,7 +42,7 @@ defmodule Bitgraph.MixProject do
       # This option is only needed when you don't want to use the OTP application name
       name: "bitgraph",
       # These are the default files included in the package
-      files: ~w(lib src test .formatter.exs mix.exs README* LICENSE*
+      files: ~w(lib test .formatter.exs mix.exs README* LICENSE*
                 ),
       exclude_patterns: ["misc/**", "scripts/**", "**/*._exs", "**/*._ex"],
       licenses: ["MIT"],

@@ -1,12 +1,13 @@
 defmodule BitGraph.Algorithm.SCC.Tarjan do
-  alias BitGraph.{Dfs, Array, Stack, Algorithm}
+  alias BitGraph.{Dfs, Algorithm}
 
   import BitGraph.Algorithm.SCC.Utils
+
+  alias InPlace.{Array, Stack}
 
   import BitGraph.Algorithm
 
   @behaviour Algorithm
-
 
   @doc """
     Tarjan algo for SCC.
@@ -22,14 +23,12 @@ defmodule BitGraph.Algorithm.SCC.Tarjan do
       graph
       |> dfs(
         Keyword.merge(opts,
-          [
-            process_vertex_fun: fn state, v, event ->
+          process_vertex_fun: fn state, v, event ->
             tarjan_vertex(state, v, event,
               num_vertices: BitGraph.max_index(graph),
               on_dag_handler: opts[:on_dag_handler],
               component_handler:
-                (opts[:component_handler]  || {fn component, acc -> [component | acc] end, []}
-                )
+                (opts[:component_handler] || {fn component, acc -> [component | acc] end, []})
                 |> wrap_component_handler()
             )
           end,
@@ -47,8 +46,8 @@ defmodule BitGraph.Algorithm.SCC.Tarjan do
             end)
           end,
           edge_process_order: :postorder
-        ])
         )
+      )
       |> get_in([:acc, :sccs])
   end
 
@@ -67,13 +66,12 @@ defmodule BitGraph.Algorithm.SCC.Tarjan do
       run(
         graph,
         Keyword.merge(opts,
-        component_handler: fn component, _acc ->
-          throw(
-            {:single_scc?, component && MapSet.size(component) == BitGraph.num_vertices(graph)}
-          )
-        end,
-
-        on_dag_handler: fn vertex ->
+          component_handler: fn component, _acc ->
+            throw(
+              {:single_scc?, component && MapSet.size(component) == BitGraph.num_vertices(graph)}
+            )
+          end,
+          on_dag_handler: fn vertex ->
             throw({:error, :dag, vertex})
           end
         )
@@ -89,8 +87,8 @@ defmodule BitGraph.Algorithm.SCC.Tarjan do
 
     %{
       stack: Stack.new(num_vertices),
-      on_stack: Array.new(num_vertices),
-      lowest: Array.new(num_vertices),
+      on_stack: Array.new(num_vertices, 0),
+      lowest: Array.new(num_vertices, 0),
       sccs: nil
     }
   end
