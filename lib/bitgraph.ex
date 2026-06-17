@@ -86,7 +86,9 @@ defmodule BitGraph do
     BitGraph.Algorithm.a_star(graph, start, goal, Keyword.put(opts, :process_mode, :both))
   end
 
-
+  def mst(graph, opts \\ []) do
+    BitGraph.Algorithm.MST.Kruskal.run(graph, opts)
+  end
 
   def default_opts() do
     [
