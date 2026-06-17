@@ -1,4 +1,4 @@
-defmodule BitGraph.MST.Kruskal do
+defmodule BitGraph.Algorithm.MST.Kruskal do
   alias InPlace.UnionFind
   alias BitGraph.V
 
