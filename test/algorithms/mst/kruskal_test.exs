@@ -65,7 +65,6 @@ defmodule BitGraphTest.Algorithm.MST.Kruskal do
 
       ## Edges form the tree
       assert length(edges) == BitGraph.num_vertices(graph) - 1
-
       assert 14 = weight
       assert MapSet.new(edges) == MapSet.new(
         [A: :E, B: :C, B: :D, C: :I, D: :E, D: :H, E: :F, G: :H, I: :J]
